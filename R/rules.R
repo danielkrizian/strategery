@@ -1,9 +1,16 @@
+
+#' Some Title
+#' 
+#' @export
 rule.hold <- function() {
   long[] <- 1
   sig <- long
   return(sig)
 }
 
+#' Some Title
+#' 
+#' @export
 rule.rand <- function
 (wlong=0 # TODO: proportion of long signals, when signals are generated parametrically
  ,wshort=0 # TODO: proportion of short signals, when signals are generated synthetically
@@ -26,6 +33,9 @@ rule.rand <- function
     return(sig)
 }
 
+#' Some Title
+#' 
+#' @export
 rule.TFH <- function(first.n.bds=3, last.n.bds=0, mom=20) {
 
   bd2fomc <- indicators$bd2fomc

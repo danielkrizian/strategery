@@ -1,3 +1,5 @@
+#' Some Title
+#' @export
 window.Date <- function(x,start=NULL,end=NULL) {
   # method for class Date. See window.zoo
   x <- as.Date(x)
@@ -8,6 +10,8 @@ window.Date <- function(x,start=NULL,end=NULL) {
   return(x)
 }
 
+#' Some Title
+#' @export
 Align <- function(x, to, pad=na.locf) {
   # Aligns observations of the xts object with another xts object. 
   # Where observation in x is missing whereas in template exists:
@@ -33,6 +37,8 @@ Align <- function(x, to, pad=na.locf) {
   return(aligned)
 }
 
+#' Some Title
+#' @export
 string.range <- function(...) {
   # ... list of xts objects
   # returns common window as ISO8601 string
@@ -45,6 +51,8 @@ string.range <- function(...) {
   return(paste(rng, collapse="::"))
 }
 
+#' Some Title
+#' @export
 strrange <- range.string <- function
 (x, # dates in format such as 2010-01-01::2010-02-01 or 2010-01-01::2010-02-01
  format=NULL # currently not used

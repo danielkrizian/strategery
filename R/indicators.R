@@ -1,8 +1,10 @@
-require(timeDate)
-require(mondate)
-require(RQuantLib)
-require(plyr)
+# require(timeDate)
+# require(mondate)
+# require(RQuantLib)
+# require(plyr)
 
+#' Some Title
+#' @export
 loadIndicators <- function
 (indicator,
  from=NULL,
@@ -25,8 +27,8 @@ loadIndicators <- function
   return(oI)
 }
 
-
-
+#' Some Title
+#' @export
 updateIndicators <- function(indicator, FUN, ...) {
   .env <- environment()
 
@@ -42,6 +44,8 @@ updateIndicators <- function(indicator, FUN, ...) {
   }
 }
 
+#' Some Title
+#' @export
 Prepare.indicators <- function(x) {
   
   if(!exists("market"))

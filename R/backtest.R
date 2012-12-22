@@ -1,5 +1,6 @@
 #'Generate signals
 #'
+#'@export
 Signals <- function
 (
   strategy,
@@ -42,7 +43,7 @@ Signals <- function
 
 #' Some Title
 #' 
-#' 
+#'@export
 Execute <- function
 (
   sig,
@@ -76,7 +77,7 @@ Execute <- function
   return(portfolio)
 }
 #' Some Title
-#' 
+#'@export
 Test <- function
 (
   strategy,
@@ -105,6 +106,7 @@ Test <- function
 }
 #' Some Title
 #' 
+#'@export
 Train <- function
 (
   strategy,
@@ -151,6 +153,7 @@ Train <- function
 
 #' Some Title
 #' 
+#'@export
 WalkForward <- function
 (
   strategy,
@@ -205,6 +208,7 @@ WalkForward <- function
 
 #' Some Title
 #' 
+#' @export
 Benchmark <- function(
   type=c("Hold","Random","rand pctile"),
   strategy,

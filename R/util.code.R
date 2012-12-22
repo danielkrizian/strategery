@@ -1,6 +1,8 @@
 # benchmarking, debugging
 
 ####### PERFORMANCE ###########
+#' Some Title
+#' @export
 tic <- function(gcFirst = TRUE, type=c("elapsed", "user.self", "sys.self"))
 {
   #   Is there an R timer or stopwatch function similar to MATLAB's tic/toc?
@@ -13,6 +15,8 @@ tic <- function(gcFirst = TRUE, type=c("elapsed", "user.self", "sys.self"))
   invisible(tic)
 }
 
+#' Some Title
+#' @export
 toc <- function()
 {
   type <- get(".type", envir=baseenv())
@@ -23,17 +27,26 @@ toc <- function()
 }
 
 ########## DEBUGGING ############
-# read R Inferno Circle 8
+
+#' Some Title
+#' 
+#' read R Inferno Circle 8
+#' @export
 my.debug <- function() {
   options(warn=2) ### options(warn=1)
   options(error=recover) # options(error=stop)
 }
 # sys.call()
+#' Some Title
+#' 
+#' @export
 my.undebug <- function() {
   options(warn=1)
   options(error=stop)
 }
 
+#' Some Title
+#' @export
 my.perf <- function(expr) {
   # my.perf(quote(example(glm)))
   Rprof(tmp <- tempfile())

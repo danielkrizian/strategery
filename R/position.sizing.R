@@ -5,7 +5,9 @@ psLeverage <- function(leverage=1){
 }
 
 
-
+#' Some Title
+#' 
+#' @export
 Weights <- function(R=data$prices, allocation=c(1,'equal', list(SPX=0.5, DAX=0.5)), rebalancing='daily'){
   # allocation: one of: 1. list of weights per symbol, in the form symbol=weight,
   #                     2. integer, for special case of single symbol composite,
@@ -42,6 +44,9 @@ Weights <- function(R=data$prices, allocation=c(1,'equal', list(SPX=0.5, DAX=0.5
   return(df)
 }
 
+#' Some Title
+#' 
+#' @export
 makeWeights <- function( R, equal=FALSE, temporal=TRUE, scheme=NULL, rebalancing='monthly', from='1900-01-01'){
   #temporal: increasing number of instruments over time as they begin trading
   f.w <- NULL
@@ -73,6 +78,9 @@ makeWeights <- function( R, equal=FALSE, temporal=TRUE, scheme=NULL, rebalancing
   f.w
 }
 
+#' Some Title
+#' 
+#' @export
 ntop <- function (data, topn = 1, dirMaxMin = TRUE) {
   # taken from Systematic Investor Toolbox
   # makes top n assets equal weight
@@ -94,6 +102,9 @@ ntop <- function (data, topn = 1, dirMaxMin = TRUE) {
   return(out)
 }
 
+#' Some Title
+#' 
+#' @export
 FinancialIndex <- function(scheme, rebalancing='monthly',label='index') {
   
   # support for monthly rebalancing currently

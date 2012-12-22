@@ -23,7 +23,8 @@ p <- function (obj) {
   }
   out
 }
-
+#' Some Title
+#' @export
 na.skip <- function (x, FUN=NULL, ...) # maybe add a trim capability?
 { # @author Brian Peterson
   
@@ -58,6 +59,8 @@ na.skip <- function (x, FUN=NULL, ...) # maybe add a trim capability?
   return(result)
 }
 
+#' Some Title
+#' @export
 align.digits = function(l) {
   #   http://tolstoy.newcastle.edu.au/R/e13/help/11/04/11186.html
   # USE:
@@ -78,6 +81,8 @@ align.digits = function(l) {
   
 }
 
+#' Some Title
+#' @export
 as.percent <- function(x, decimals=0, align.dec=T) {
   # x - numeric vector
   if(align.dec) {
@@ -101,6 +106,8 @@ as.percent <- function(x, decimals=0, align.dec=T) {
   return(out)
 }
 
+#' Some Title
+#' @export
 as.dollar <- function(x, round=F) {
   # x - numeric vector
   # TODO: 100MM notation
@@ -114,6 +121,8 @@ as.dollar <- function(x, round=F) {
   return(out)
 }
 
+#' Some Title
+#' @export
 capwords <- function(s, strict = FALSE) {
   # capitalize first letters
   # see ?tolower examples
@@ -123,6 +132,8 @@ capwords <- function(s, strict = FALSE) {
   sapply(strsplit(s, split = " "), cap, USE.NAMES = !is.null(names(s)))
 }
 
+#' Some Title
+#' @export
 roundstep <- function(x,step=1){
   x <- round(x)
   if(step==5){
@@ -136,6 +147,8 @@ roundstep <- function(x,step=1){
   return(x)
 }
 
+#' Some Title
+#' @export
 chunks <- function(x,max=10000){
   #split vector in chunks with maximum length of 10000
   i <- seq_along(x)

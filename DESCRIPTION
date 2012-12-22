@@ -33,5 +33,7 @@ Depends:
     timeDate,
     mondate,
     RQuantLib,
-    plyr
+    plyr,
+    TTR,
+    PerformanceAnalytics
 Repository: CRAN

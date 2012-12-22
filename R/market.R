@@ -1,3 +1,5 @@
+#' Some Title
+#' @export
 updateSymbols <- function(Symbol,src="yahoo") {
   .env <- environment()
   getSymbols(Symbol, src="FI"
@@ -20,6 +22,8 @@ updateSymbols <- function(Symbol,src="yahoo") {
   }
 }
 
+#' Some Title
+#' @export
 getPrice <- function (x, symbol = NULL, prefer = NULL) 
 {
   if(is.environment(x)) {
@@ -75,7 +79,8 @@ getPrice <- function (x, symbol = NULL, prefer = NULL)
   }
   
 }
-
+#' Some title
+#' @export
 Prepare.market <- function
 (
   symbols,  

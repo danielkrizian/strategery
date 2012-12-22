@@ -1,4 +1,5 @@
-
+#' Some Title
+#' @export
 add.parameters <- 
       function (strategy, 
               type = 'signals', 
@@ -25,7 +26,8 @@ add.parameters <-
   else return(s)
 }
 
-
+#' Some Title
+#' @export
 getParBounds <- function(strategy) {
   s <- getStrategy(strategy)
   out <- list()

@@ -1,3 +1,6 @@
+
+#' Some Title
+#' @export
 load.strategy <- function(strategy.name)
 {
     file.name <- paste(strategy.name, 'RData', sep='.')
@@ -6,7 +9,10 @@ load.strategy <- function(strategy.name)
     assign(.strategy$strategy$name, .strategy$strategy, envir=.strategy)
 }
 
+#' Some Title
+#' 
 # save a strategy object from memory onto disk
+#' @export
 save.strategy <- function(strategy.name)
 {
     strategy <- get(as.character(strategy.name), pos=.strategy, inherits=TRUE)
@@ -15,8 +21,11 @@ save.strategy <- function(strategy.name)
     save(strategy, pos=.strategy, file=file.name)
 }
 
+#' Some Title
+#' 
+#' initialize default rule function
+#' @export
 init.strategy <- function (strategy) {
-  # initialize default rule function
   FUNname <- paste("rule",strategy,sep=".")
 
   add.signal(strategy,

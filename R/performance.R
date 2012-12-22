@@ -1,7 +1,10 @@
-require(TTR)
-require(PerformanceAnalytics)
-require(plyr) # count function
+# require(TTR)
+# require(PerformanceAnalytics)
+# require(plyr) # count function
 
+#' Some Title
+#' 
+#' @export
 summary.returns <- function(R, stats, as.rows=T, ...) {
   # table of statistics in rows and portfolios/models in columns
   if(is.null(colnames(R)))
@@ -16,6 +19,9 @@ summary.returns <- function(R, stats, as.rows=T, ...) {
   ans
 }
 
+#' Some Title
+#' 
+#' @export
 stat.fun <- function(name) {
   # search for statistic function by function name (incl. "compute." variant) 
   # or by name defined in statistics list
@@ -41,6 +47,9 @@ stat.fun <- function(name) {
   else stop(paste("Couldn't find function",name,". Add it to the definitions table"))
 }
 
+#' Some Title
+#' 
+#' @export
 compute.stat <- compute.stats <- function(stat, ..., name=NULL){
   # computes statistic, using function or name of the statistic supplied. 
   # TODO (Function intelligently looks up required arguments from the object slots. Some arguments are assumed, even if not provided with exact name: e.g. if slot 'ret' exists, it will be passed to the functions as 'x' argument)
@@ -77,6 +86,9 @@ compute.stat <- compute.stats <- function(stat, ..., name=NULL){
   return(out)
 }
 
+#' Some Title
+#' 
+#' @export
 format.stats <- function(x, select.rows, select.cols, subset=NULL, sort=NULL, ascending=NULL, format='decimal', metrics.in.rows = TRUE, digits=2, row.names=rownames(x), col.names=colnames(x)) {
   # x - list, matrix or data frame of statistics. List will be converted to matrix
   # select.rows, select.cols - character vector specifying which rows/cols to only display as row names and col names 
@@ -208,6 +220,9 @@ format.stats <- function(x, select.rows, select.cols, subset=NULL, sort=NULL, as
   return(x)
 }
 
+#' Some Title
+#' 
+#' @export
 Summary <- function
 (portfolio, # portfolio object, having components R, pos and trades
  stats=c("curve", "trade", "period"),
@@ -322,11 +337,16 @@ statistics[["time.period"]] <- c('Time Period')
 # R must have dates
 
 
-
+#' Some Title
+#' 
+#' @export
 compute.cagr <- function(R, equity=cumprod(1 + R)) {
   as.double( last(equity,1)^(1/compute.nyears(equity)) - 1 )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.premium <- function(
   Ra,
   Rb
@@ -334,6 +354,9 @@ compute.premium <- function(
   return( compute.cagr(R=Ra) - compute.cagr(R=Rb) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.edge <- function(
   strategy,
   pars,
@@ -353,7 +376,9 @@ compute.edge <- function(
   return(p.value)
 }
 
-
+#' Some Title
+#' 
+#' @export
 compute.total.return <- function (
   equity=if(continuous) cumsum(R) else cumprod(1 + R),
   R=NULL, 
@@ -367,10 +392,16 @@ compute.total.return <- function (
   }
 }
 
+#' Some Title
+#' 
+#' @export
 compute.raw.annual.factor = function(x) {
   round( nrow(x) / compute.nyears(x) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.annual.factor = function(x) {
   # 252 - days, 52 - weeks, 26 - biweeks, 12-months, 6,4,3,2,1
   possible.values = c(252,52,26,13,12,6,4,3,2,1)
@@ -378,32 +409,53 @@ compute.annual.factor = function(x) {
   round( possible.values[index] )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.twr <- function(equity=cumprod(1 + R), R=NULL) 
   return(compute.total.return(equity))
 
+#' Some Title
+#' 
+#' @export
 compute.sigma <- function(R) {
   temp = compute.annual.factor(R)
   x = as.vector(coredata(R))
   return( sqrt(temp)*sd(x) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.sharpe <- function(R) {
   f = compute.annual.factor(R)
   R = coredata(R)
   return(sqrt(f) * mean(R) / apply(R,2,sd) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.r2 <- function(equity=cumprod(1+R), R=NULL) {
   x = as.double(index(equity))
   y = as.double(equity)
   return( cor(y,x)^2 )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.dvr <- compute.DVR <- function(equity=cumprod(1+R), R)
   return( compute.sharpe(R) * compute.r2(equity) )
 
+#' Some Title
+#' 
+#' @export
 compute.mar <- function() NA
 
+#' Some Title
+#' 
+#' @export
 compute.kestner <- compute.kratio <- function(equity=cumprod(1 + R), R=NULL, adjust.n=F) {
   # adjust.n - divide by number of datapoints
   # adjust.n discussion (Zephyr K-ratio): 
@@ -421,10 +473,16 @@ compute.kestner <- compute.kratio <- function(equity=cumprod(1 + R), R=NULL, adj
   return(k)
 }
 
+#' Some Title
+#' 
+#' @export
 compute.max.drawdown <- function(R=NULL, equity=Equity(R=R,nas=F,drawdown=T)) {
   as.double( min(equity$drawdown) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.MCDD <- function(R=wf$R[wf$R!=0], conf=.95, samples=1000, parallel=F){
   require(np)
   require(boot)
@@ -458,7 +516,9 @@ compute.MCDD <- function(R=wf$R[wf$R!=0], conf=.95, samples=1000, parallel=F){
 }
 
 
-
+#' Some Title
+#' 
+#' @export
 compute.avg.drawdown <- function(equity=Equity(R=R,nas=F,drawdown=T), R=NULL) {
   drawdown = rbind( coredata(equity$drawdown), 0 )
   dstart = which( drawdown == 0 & c(0,drawdown[-length(drawdown)]) != 0 )
@@ -466,7 +526,9 @@ compute.avg.drawdown <- function(equity=Equity(R=R,nas=F,drawdown=T), R=NULL) {
   mean(apply( cbind(dstart, dend), 1, function(x){ min( drawdown[ x[1]:x[2] ], na.rm=T) } ))
 }
 
-
+#' Some Title
+#' 
+#' @export
 compute.avg.drawdown.length <- function(equity=Equity(R=R,nas=F,drawdown=T), R=NULL) {
   drawdown = rbind( coredata(equity$drawdown), 0 )
   dstart = which( drawdown == 0 & c(drawdown[-1], 0) != 0 )
@@ -474,10 +536,16 @@ compute.avg.drawdown.length <- function(equity=Equity(R=R,nas=F,drawdown=T), R=N
   return( mean(dend-dstart) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.nyears <- function(R) {
   as.double(diff(as.Date(range(index(R)))))/365
 }
 
+#' Some Title
+#' 
+#' @export
 compute.percent.in.market <- function(pos=bt$pos) {
   # Calculates percentage time the strategy signals position in the market.
   # Args:
@@ -488,17 +556,25 @@ compute.percent.in.market <- function(pos=bt$pos) {
   sum(pos != 0, na.rm=TRUE) / nrow(pos)
 }
 
+#' Some Title
+#' 
+#' @export
 compute.rina <- function(R) {
   # TODO:
   #   http://www.bigmiketrading.com/psychology-money-management/11594-evaluation-discussion-performance-ratios.html#post129146
   #   total net profit, divides it by the average drawdown and divides it again by the percent time in the market.
 }
 
-
+#' Some Title
+#' 
+#' @export
 compute.ntrades <- function(trades=b$trades) {
   return(nrow(trades))
 }
 
+#' Some Title
+#' 
+#' @export
 compute.win.rate <- function(trades=b$trades) {
   w <- as.double(trades[, 'size'])
   P.exit <- as.double(trades[, 'exit.price'])
@@ -507,6 +583,9 @@ compute.win.rate <- function(trades=b$trades) {
   return( sum( pnl > 0 ) / compute.ntrades(trades))
 }
 
+#' Some Title
+#' 
+#' @export
 compute.pnl <- function(trades=b$trades) {
   w <- as.double(trades[, 'size'])
   P.exit <- as.double(trades[, 'exit.price'])
@@ -515,33 +594,54 @@ compute.pnl <- function(trades=b$trades) {
   return( pnl )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.avg.pnl <- function(trades=bt$trades) {
   pnl =  compute.pnl(trades=trades)
   return( mean (pnl) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.win.avg.pnl <- function(trades=bt$trades) {
   pnl =  compute.pnl(trades=trades)
   return( mean( pnl[pnl > 0] ) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.loss.avg.pnl <- function(trades=bt$trades) {
   pnl =  compute.pnl(trades=trades)
   return( mean( pnl[pnl < 0] ) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.win.loss.ratio <- function(trades=bt$trades) {
   return( abs (compute.win.avg.pnl(trades=trades) / compute.loss.avg.pnl(trades=trades) ) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.best.trade <- function(trades=bt$trades) {
   return( max(as.double(trades[, 'return'])) / 100 )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.worst.trade <- function(trades=bt$trades) {
   return( min(as.double(trades[, 'return'])) / 100 )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.expectancy <- function(trades=bt$trades) {
   win.rate <- compute.win.rate(trades)
   avg.win <- compute.win.avg.pnl(trades)
@@ -549,6 +649,9 @@ compute.expectancy <- function(trades=bt$trades) {
   return( win.rate * avg.win + (1-win.rate)* avg.loss )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.profit.factor <- function(trades=bt$trades) {
   win.rate <- compute.win.rate(trades)
   avg.win <- compute.win.avg.pnl(trades)
@@ -556,79 +659,124 @@ compute.profit.factor <- function(trades=bt$trades) {
   return( abs( avg.win / avg.loss * win.rate / (1- win.rate) ) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.avg.days.in.trade <- function(trades=bt$trades) {
   days.in.trade = as.Date(trades[, 'exit.date']) - as.Date(trades[, 'entry.date'])
   return( mean(days.in.trade) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.trades.per.year <- function(R, trades=bt$trades) {
   if(is.null(trades)) 
     stop("Missing trades. Couldn't calculate statistic: Trades Per Year")
   return(compute.ntrades(t=trades) / compute.nyears(R=R))
 }
 
+#' Some Title
+#' 
+#' @export
 compute.monthly.returns <- function(equity=cumprod(1 + R), R=NULL){
   month.ends = unique(sort(c(1,endpoints(equity, 'months'))))
   return( ROC(equity[month.ends, ], type = 'discrete', na.pad=FALSE) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.annual.returns <- compute.yearly.returns <- function(equity=cumprod(1 + R), R=NULL){
   year.ends = unique(sort(c(1,endpoints(equity, 'years'))))
   return( ROC(equity[year.ends, ], type = 'discrete', na.pad=FALSE) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.rolling.returns <- function(R, window=12, na.rm=TRUE) {
   R <- apply.rolling(R, width=window, FUN=function(x){prod(1 + x) - 1})
   if(na.rm) R <- na.omit(R)
   return(R)
 }
 
+#' Some Title
+#' 
+#' @export
 compute.win.months.rate <- function (equity=cumprod(1 + R), R=NULL) {
   mret <- compute.monthly.returns(equity)
   return( sum(mret >= 0, na.rm = T) / length(mret) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.win.month.avg.return <- function(equity=cumprod(1 + R), R=NULL) {
   mret <- compute.monthly.returns(equity)
   return( mean(mret[mret > 0]) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.loss.month.avg.return <- function(equity=cumprod(1 + R), R=NULL) {
   mret <- compute.monthly.returns(equity)
   return( mean(mret[mret < 0]) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.best.month <- function(equity=cumprod(1 + R), R=NULL) {
   mret <- compute.monthly.returns(equity)
   return( max(mret, na.rm = T) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.worst.month <- function(equity=cumprod(1 + R), R=NULL) {
   mret <- compute.monthly.returns(equity)
   return( min(mret, na.rm = T) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.win.years.rate <- function (equity=cumprod(1 + R), R=NULL) {
   yret <- compute.yearly.returns(equity)
   return( sum(yret >= 0, na.rm = T) / length(yret) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.best.year <- function(equity=cumprod(1 + R), R=NULL) {
   yret <- compute.yearly.returns(equity)
   return( max(yret, na.rm = T) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.worst.year <- function(equity=cumprod(1 + R), R=NULL) {
   yret <- compute.yearly.returns(equity)
 return( min(yret, na.rm = T) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.win.12m.rate <- function (equity=cumprod(1 + R), R=NULL) {
   mret <- compute.monthly.returns(equity)
   ret.12m <- as.numeric(compute.rolling.returns(mret, window=12))
   return( sum( ret.12m > 0) / length( ret.12m ) )
 }
 
+#' Some Title
+#' 
+#' @export
 compute.time.period <- function (equity=cumprod(1 + R), R=NULL) {
   temp <- Sys.getlocale("LC_TIME")
   Sys.setlocale(category="LC_TIME", locale="C")
@@ -637,6 +785,9 @@ compute.time.period <- function (equity=cumprod(1 + R), R=NULL) {
   return(ret)
 }
 
+#' Some Title
+#' 
+#' @export
 DownsideDeviation <- function (R, MAR = 0, method = c("subset", "full")) 
 {
   # fixing bug when R is xts and MAR is not a single figure Error in dimnames(x) <- dn : length of 'dimnames' [1] not equal to array extent

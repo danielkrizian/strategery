@@ -1,4 +1,7 @@
 
+#' Some Title
+#' 
+#' @export
 portfolio <- function(name="default",
                       symbols=colnames(positions),
 #                       initPosQty = 0,
@@ -27,6 +30,9 @@ portfolio <- function(name="default",
   else return(P)
 }
 
+#' Some Title
+#' 
+#' @export
 updatePfolio <- function(portfolio,
                          positions=NULL,
                          trades=F,
@@ -60,6 +66,9 @@ updatePfolio <- function(portfolio,
   else return(portfolio)
 }
 
+#' Some Title
+#' 
+#' @export
 ValuationPrices <- function(x) {
   # for each signal/position, get latest price
   prices <- Align(market$prices,to=x,pad=F)
@@ -68,6 +77,9 @@ ValuationPrices <- function(x) {
   return(prices)
 }
 
+#' Some Title
+#' 
+#' @export
 Returns <- function(portfolio, #portfolio
                     ..., # other portfolios to merge returns with
                     type=c("periods","trades")[1],
@@ -117,6 +129,9 @@ Returns <- function(portfolio, #portfolio
   }
 }
 
+#' Some Title
+#' 
+#' @export
 Trades <- function (portfolio, refresh=T) {
       # TODO: support for "share" type sizing
   if(is.character(portfolio))
@@ -171,7 +186,9 @@ Trades <- function (portfolio, refresh=T) {
   return(trades)
 }
 
-
+#' Some Title
+#' 
+#' @export
 Equity <- function
 (... # portfolios
  ,R=Returns(...)

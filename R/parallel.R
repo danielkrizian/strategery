@@ -1,3 +1,5 @@
+#' Some Title
+#' @export
 createCluster = function
 (
   noCores=detectCores()

@@ -1,3 +1,7 @@
+
+#' Some Title
+#' 
+#' @export
 RandomPortfolios <- function
 (strategy
  ,pars

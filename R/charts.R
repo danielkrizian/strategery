@@ -7,6 +7,8 @@ require(xtsExtra)
 require(Hmisc)
 require(lattice)
 
+#' Some title
+#'@export
 do_layout <- function (x, screens, layout.screens, yax.loc, nc, nr, ylim) 
 {
   #customized par(oma
@@ -126,9 +128,8 @@ do_layout <- function (x, screens, layout.screens, yax.loc, nc, nr, ylim)
     ylab.axis = ylab.axis, ylim = ylim))
 }
 
-
-
-
+#' Some title
+#'@export
 plot.xts.custom <- function (x, y = NULL, screens = "auto", layout.screens = "auto", 
   ..., yax.loc = c("none", "out", "in", "flip", "left", "right", 
     "top"), auto.grid = TRUE, major.ticks = "auto", minor.ticks = TRUE, 
@@ -272,7 +273,8 @@ plot.xts.custom <- function (x, y = NULL, screens = "auto", layout.screens = "au
   return(invisible(reclass(x)))
 }
 
-
+#' Some title
+#'@export
 default.panel.rev <- function (index, x, col, pch, cex, lwd, type, lty) 
 {
 # modelled after xtsExtra::default.panel except the order of lines is reversed for better visibility: seq_len(NCOL(x)) is substituted with NCOL(x):1
@@ -288,7 +290,8 @@ default.panel.rev <- function (index, x, col, pch, cex, lwd, type, lty)
     }
 }
 
-
+#' Some title
+#'@export
 cumreturn.panel  <- function(index,x, ...) {
   title(ylab="Cumulative Performance (Log)")
   default.panel.rev(index,x,...)
@@ -297,6 +300,8 @@ cumreturn.panel  <- function(index,x, ...) {
   par(yaxt="n") # disable axis drawing
 }
 
+#' Some title
+#'@export
 drawdown.panel <-  function(index,x,...) {  
 #   par(new=T)
   title(ylab="Drawdown", ps=10)
@@ -306,6 +311,8 @@ drawdown.panel <-  function(index,x,...) {
   par(yaxt="n") # disable axis drawing
 }
 
+#' Some title
+#'@export
 Plot.Equity <- function
 (... # objects to draw. Currently supported portfolios and return xts
  ,nas=NULL # logical, does R contain NAs? If NULL, function will detect, but costly speedwise
@@ -444,7 +451,8 @@ Plot.Equity <- function
   )
 }
 
-
+#' Some title
+#'@export
 Plot.returns <- function(R, scale=c("monthly", "yearly"), last=10) {
   
   require(reshape)

@@ -51,7 +51,8 @@
 # df = bins - 1 ???   5% = 11.07, 10% = 9.24, 20% = 7.29
 # naive test in Bandy showed slower lag vs t-test (25 trades vs 12 trades)
 
-
+#' Some title
+#'@export
 HealthTest <- function
 (
   strategy,
@@ -103,7 +104,8 @@ HealthTest <- function
 
 }
 
-
+#' Some title
+#'@export
 Test.mean <- function(x,mu=0) {
 
     p.value
