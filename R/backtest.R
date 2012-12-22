@@ -1,3 +1,5 @@
+#'Generate signals
+#'
 Signals <- function
 (
   strategy,
@@ -38,6 +40,9 @@ Signals <- function
   return(sig)
 }
 
+#' Some Title
+#' 
+#' 
 Execute <- function
 (
   sig,
@@ -70,7 +75,8 @@ Execute <- function
   
   return(portfolio)
 }
-
+#' Some Title
+#' 
 Test <- function
 (
   strategy,
@@ -97,7 +103,8 @@ Test <- function
     oPfolio$R <- Returns(oPfolio, type="periods",reduce=F, refresh=T)
   return(oPfolio)
 }
-
+#' Some Title
+#' 
 Train <- function
 (
   strategy,
@@ -141,6 +148,9 @@ Train <- function
 # 2. find best pars iis
 # 3. apply pars oos
 # 4. next
+
+#' Some Title
+#' 
 WalkForward <- function
 (
   strategy,
@@ -193,6 +203,8 @@ WalkForward <- function
   return(P)
 }
 
+#' Some Title
+#' 
 Benchmark <- function(
   type=c("Hold","Random","rand pctile"),
   strategy,
