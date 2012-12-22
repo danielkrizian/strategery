@@ -27,5 +27,7 @@ Collate:
     'util.code.R'
     'util.R'
 Depends:
-    RColorBrewer
+    RColorBrewer,
+    FinancialInstrument,
+    quantstrat
 Repository: CRAN
