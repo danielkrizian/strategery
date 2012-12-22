@@ -10,3 +10,22 @@ License: What license is it under?
 Collate:
     'backtest.R'
     'colors.R'
+    'defaults.R'
+    'health.R'
+    'charts.R'
+    'indicators.R'
+    'market.R'
+    'parallel.R'
+    'parameters.R'
+    'performance.R'
+    'portfolios.R'
+    'position.sizing.R'
+    'random.R'
+    'rules.R'
+    'strategies.R'
+    'time.series.R'
+    'util.code.R'
+    'util.R'
+Depends:
+    RColorBrewer
+Repository: CRAN
