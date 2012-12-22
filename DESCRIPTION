@@ -29,5 +29,9 @@ Collate:
 Depends:
     RColorBrewer,
     FinancialInstrument,
-    quantstrat
+    quantstrat,
+    timeDate,
+    mondate,
+    RQuantLib,
+    plyr
 Repository: CRAN
