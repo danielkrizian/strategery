@@ -16,7 +16,9 @@ portfolio <- function(name="default",
   P <- list()
   P$name=name
   if(is.null(positions))
-    P$pos <-xts(numeric(length(symbols)), order.by=as.Date(numeric(length(symbols))))
+    P$pos <-xts(matrix(numeric(0),ncol=ifelse(is.null(symbols),1,length(symbols))), 
+                order.by= as.Date.numeric(numeric(0),origin="1970-01-01"))
+                 
   else {
     P$pos <- positions
   }

@@ -16,7 +16,9 @@ RandomPortfolios <- function
 #                                       params=list(sig=to.permute)))
   baseR <- Test(strategy,pars)$R
 
-  randomS <- strategy("random",assets=getStrategy(strategy)$assets,store=T)
+  randomS <- strategy("random", 
+                      assets=getStrategy(strategy)$assets, 
+                      store=T)
 
   randomS <-  add.signal(randomS,
              name="rule.rand",
@@ -27,9 +29,7 @@ RandomPortfolios <- function
              store=F)
 
   if(parallel) {
-    cl <- createCluster(parVar=c("rule.rand","Test",
-                              "Execute","Signals","market","portfolio","Returns")
-                        ,packages=c("xts","quantstrat"))
+    cl <- createCluster(parVar=c("market"),packages=c("xts","quantstrat","strategery"))
     randR <- parSapply(cl=cl, 1:n,
                        function(iteration, pars) {
                          Rxts <- Test(randomS, pars=pars)$R

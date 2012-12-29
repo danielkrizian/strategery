@@ -84,7 +84,7 @@ getPrice <- function (x, symbol = NULL, prefer = NULL)
 Prepare.market <- function
 (
   symbols,  
-  #   market, # environment
+  lookup,
   align = c('keep.all', 'remove.na'),
   dates = NULL,
   fill.gaps = F
@@ -95,7 +95,7 @@ Prepare.market <- function
   # TODO: support OpenClose frequency
   
   market <-new.env()
-  loadSymbolLookup("SymbolLookup.RData", dir="Data/Market")
+  loadSymbolLookup(lookup)
   getSymbols(symbols, env=market)
   
   if( !exists('symbolnames', market, inherits = F) ) market$symbolnames = ls(market)

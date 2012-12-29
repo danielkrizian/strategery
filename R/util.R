@@ -1,3 +1,11 @@
+
+#' Some Title
+#' @export
+is.defined <- function(x){
+  exists(deparse(substitute(x)))
+}
+
+
 p <- function (obj) {
   #my custom way of inspecting objects
   out <- list()

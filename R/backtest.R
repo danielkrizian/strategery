@@ -11,11 +11,12 @@ Signals <- function
   # TODO: weekend signals - they currently get erased with Align to market prices
   # returns no NAs, range within indicator availability
 
-    if(is.character(strategy))
-      strategy <- getStrategy(strategy)
-    sigFUN <- strategy$signals[['signal']]$name
-    sig <- do.call(sigFUN, as.list(pars))
-    
+  if(is.character(strategy))
+    strategy <- getStrategy(strategy)
+  sigFUN <- strategy$signals[['signal']]$name
+  sig <- do.call(sigFUN, as.list(pars))
+  if(!is.xts(sig))
+    stop("Output from signal function is NULL")
   if(granular) {
     # increase granularity of positions, if pricing more frequent
     # case:
@@ -119,14 +120,13 @@ Train <- function
     
   if(is.character(strategy))
     strategy <- getStrategy(strategy)
-  
+   
   f <- function(pars, strategy, dates=NULL) {
     ans <- compute.edge(strategy, pars, dates=dates)
-#     message(ans,"pars:",paste(pars,collapse="-"))
 #     if(is.na(ans) | !length(ans) | is.nan(ans)) ans <- Inf
     return(ans)
   }
-  ###TODO: mapping from real to distribution
+  ###TODO: mapping from real integer to distribution
   #   ret[3] <- roundstep(ret[3],5) ; if(ret[3]==0) ret[3]=1
   outDEoptim <- DEoptim(f,
                         getParBounds(strategy)$lower,

@@ -20,7 +20,6 @@ Depends:
 Collate:
     'backtest.R'
     'colors.R'
-    'defaults.R'
     'health.R'
     'charts.R'
     'indicators.R'

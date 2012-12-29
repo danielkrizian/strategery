@@ -41,13 +41,10 @@ rule.TFH <- function(first.n.bds=3, last.n.bds=0, mom=20) {
   bd2fomc <- indicators$bd2fomc
   bd2hol <- indicators$bd2holNYSE
   close <- Cl (market[['SPX']])
-  
-  tom <- sort(as.vector(outer(indicators$eomNYSE, (-last.n.bds+1):(first.n.bds)-1, "+")))
-  tom <- indicators$bdNYSE[tom[tom > 0 & tom <= length(indicators$bdNYSE)]]
-  
-  long[tom] <- 1
+
+  long[TurnMonth(first.n.bds, last.n.bds, lag=-1)] <- 1
   price.momentum <- lag(momentum(close, n=mom, na.pad=F), na.pad=F)
-  long <- (long | bd2fomc == 1 | bd2hol == 1) * (price.momentum > 0)
+  long <-  (long | bd2fomc == 1 | bd2hol == 1) *  (price.momentum > 0) 
   
   sig <- long - short
   return(sig)

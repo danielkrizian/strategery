@@ -7,14 +7,17 @@
 #' @export
 loadIndicators <- function
 (indicator,
+ src,
  from=NULL,
  to=NULL,
  align.to=market$prices,
  env=.GlobalEnv,
  auto.assign=F
 ){
-  fp <-paste("Data/Indicators/",indicator,"/",indicator,".rda", sep="")
-  oI <- get(load(fp))
+  if(src=="package")
+    oI <- get(data(list=indicator))
+  else
+    oI <- get(load(src))
 #   if(inherits(oI,"Date"))
 #     oI <- window.Date(x=oI, start=from, end=to)
   if(is.xts(oI)){
@@ -45,18 +48,23 @@ updateIndicators <- function(indicator, FUN, ...) {
 }
 
 #' Some Title
+#' 
+#' @param src character string indicating where to get the indicators data from. If 'package' string is provided, then data(,env=indicators)
 #' @export
-Prepare.indicators <- function(x) {
-  
+Prepare.indicators <- function(x, src=c("package"))
+  {
+  if(length(src)>1) src <- src[1]
   if(!exists("market"))
      stop("Market environment must be created first.")
      
-  indicators <- new.env()
+  if(!exists('indicators'))
+    indicators <- new.env()
   
   for (indicator in x)
     loadIndicators(indicator, 
                    from=range(index(market$prices))[1],
-                   to=range(index(market$prices))[2],                   
+                   to=range(index(market$prices))[2],
+                   src=src,
                    env=indicators, align.to=market$prices, auto.assign=T )
   
   return(indicators)
@@ -499,6 +507,30 @@ getHolidaysNYSE <- function(auto.assign=TRUE, env=.GlobalEnv) {
   }
   return(holidays)
 }
+
+#' Days around the end and the beginning of the month
+#' 
+#' eomNYSE is stored as index of monthly endpoints of bdNYSE
+#' eomNYSE <- which(diff(as.numeric(format(bdNYSE, format = "%m")))!=0)
+#' @param lag integer, indicating whether to lag the date (positive integer), or advance the date (negative integer) by (lag) number of business days
+#' Special case: (0,0) is converted to (0,1)
+#' @export
+TurnMonth <- function(first.n.bds, last.n.bds, lag=0){
+  this.env <- new.env()
+  if(!is.defined(indicators$eomNYSE)) indicators$eomNYSE <- get(data(eomNYSE, envir=this.env),pos=this.env)
+  if(!is.defined(indicators$bdNYSE)) indicators$bdNYSE <- get(data(bdNYSE, envir=this.env),pos=this.env)
+  
+  if(last.n.bds==0)
+    if(first.n.bds==0)
+      last.n.bds <- 1
+      
+  tom <- sort(as.vector(outer(indicators$eomNYSE, (-last.n.bds+1):(first.n.bds) + lag, "+")))
+  tom <- indicators$bdNYSE[tom[tom > 0 & tom <= length(indicators$bdNYSE)]]
+  return(tom)
+}
+
+#   tom <- sort(as.vector(outer(indicators$eomNYSE, (-last.n.bds+1):(first.n.bds)-1, "+")))
+#   tom <- indicators$bdNYSE[tom[tom > 0 & tom <= length(indicators$bdNYSE)]]
 
 ToM <- function (calendar="UnitedStates/NYSE", last.n.bds=1, first.n.bds=3) {
   # returns business days around month end
