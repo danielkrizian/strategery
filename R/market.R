@@ -80,6 +80,10 @@ getPrice <- function (x, symbol = NULL, prefer = NULL)
   
 }
 #' Some title
+#' 
+#' goal: market$prices must contain trading opportunities of the relevant model. Columns are symbols. Make OpenClose frequency if necessary.
+#' remove NAs for speed. Retain NAs for accuracy. Info stored in has.NAs
+#' TODO: support OpenClose frequency
 #' @export
 Prepare.market <- function
 (
@@ -90,14 +94,18 @@ Prepare.market <- function
   fill.gaps = F
 )
 {
-  # goal: market$prices must contain trading opportunities of the relevant model. Columns are symbols. Make OpenClose frequency if necessary.
-  # remove NAs for speed. Retain NAs for accuracy. Info stored in has.NAs
-  # TODO: support OpenClose frequency
-  
+  storedTZ <- Sys.getenv("TZ")
+  Sys.setenv(TZ="GMT")
   market <-new.env()
-  loadSymbolLookup(lookup)
-  getSymbols(symbols, env=market)
-  
+  if(is.environment(lookup)) {
+    for( i in 1:length(symbols) ) {
+      assign(symbols[i], value=get(symbols[i],pos=lookup), pos=market)
+    }
+  }
+  else {
+    loadSymbolLookup(lookup)
+    getSymbols(symbols, env=market)
+  }
   if( !exists('symbolnames', market, inherits = F) ) market$symbolnames = ls(market)
   symbolnames = market$symbolnames
   nsymbols = length(symbolnames)
@@ -148,6 +156,6 @@ Prepare.market <- function
   signal[] <<- 0
   long <<- signal
   short <<- signal
-  
+  Sys.setenv(TZ=storedTZ)
   return(market)
 }
