@@ -7,6 +7,10 @@
     fill.gaps = F)
 }
 \description{
-  Some title
+  goal: market$prices must contain trading opportunities of
+  the relevant model. Columns are symbols. Make OpenClose
+  frequency if necessary. remove NAs for speed. Retain NAs
+  for accuracy. Info stored in has.NAs TODO: support
+  OpenClose frequency
 }
 
