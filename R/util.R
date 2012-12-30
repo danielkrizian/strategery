@@ -163,3 +163,21 @@ chunks <- function(x,max=10000){
   split(x, ceiling(i/max))
 }
 
+knit2wp.com <- function(file) {
+    require(XML)
+    post.content <- readLines(file)
+    post.content <- gsub(" <", "&nbsp;<", post.content)
+    post.content <- gsub("> ", ">&nbsp;", post.content)
+    post.content <- htmlTreeParse(post.content)
+    post.content <- paste(capture.output(print(post.content$children$html$children$body, 
+        indent = FALSE, tagSeparator = "")), collapse = "\n")
+    post.content <- gsub("<?.body>", "", post.content)
+    post.content <- gsub("<p>", "<p style=\"text-align: justify;\">", post.content)
+    post.content <- gsub("<?pre><code class=\"r\">", "\\[sourcecode language=\"r\"\\]\\\n ", 
+        post.content)
+    post.content <- gsub("<?pre><code class=\"no-highlight\">", "\\[sourcecode\\]\\\n ", 
+        post.content)
+    post.content <- gsub("<?/code></pre>", "\\\n\\[/sourcecode\\]", post.content)
+    return(post.content)
+}
+
