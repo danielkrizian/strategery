@@ -182,6 +182,11 @@ ind.summary <- function (dates="::") {
 }
 
 ##### INDICATOR FUNs ###############
+
+
+#' Calculates running quantile row-wise from matrix or xts
+#' 
+#' @export
 Quantile <- function(x, probs){
   if(xtsible(x) & NCOL(x)>1 ){
     out<-t(apply(x, 1, quantile, probs=probs))
