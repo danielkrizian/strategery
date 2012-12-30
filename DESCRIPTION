@@ -16,7 +16,11 @@ Depends:
     RQuantLib,
     plyr,
     TTR,
-    PerformanceAnalytics
+    PerformanceAnalytics,
+    grid,
+    gridExtra,
+    gridBase,
+    xtsExtra
 Collate:
     'backtest.R'
     'colors.R'
