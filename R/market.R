@@ -1,9 +1,9 @@
 #' Some Title
 #' @export
-updateSymbols <- function(Symbol,src="yahoo") {
+updateSymbols <- function(Symbol,src="yahoo", db.path="C:/R/Trading Rules/Data/Market") {
   .env <- environment()
   getSymbols(Symbol, src="FI"
-             ,dir="Data/Market"
+             ,dir=db.path
              ,from="1900-01-01"
              ,split_method="common"
              ,use_identifier="primary_id"
@@ -18,7 +18,7 @@ updateSymbols <- function(Symbol,src="yahoo") {
     append <- get(Symbol, pos=.env)
   if(NROW(append)) {
     assign( Symbol, rbind(old, append ), pos=.env)
-    saveSymbols.common(Symbol, base_dir="Data/Market", env=.env)
+    saveSymbols.common(Symbol, base_dir=db.path, env=.env)
   }
 }
 
