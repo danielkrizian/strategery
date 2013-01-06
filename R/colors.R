@@ -8,6 +8,7 @@
 # bluefocusMy <- c("#0033FF", "#CCCCCC", "#D9D9D9", "#F0F0F0","#737373","#969696","#BDBDBD")
 # brewer.pal(n=9,"PuBu")[c(9,6)]
 
+library(RColorBrewer)
 strategy.colors <- brewer.pal(n=9,"Blues")[c(8,6,4)]
 benchmark.colors <- brewer.pal(n=9,"Greys")[c(6,5)]
 random.colors <- brewer.pal(n=9,"Greys")[c(4)]
