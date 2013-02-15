@@ -49,3 +49,15 @@ rule.TFH <- function(first.n.bds=3, last.n.bds=0, mom=20) {
   sig <- long - short
   return(sig)
 }
+
+rule.smacross <- function(n_fast=50, n_slow=200){
+  close <- Cl (market[['SPX']])
+  sma_fast <- SMA(close, n=n_fast)
+  sma_slow <- SMA(close, n=n_slow)
+
+  long <-  sma_fast > sma_slow
+  short <- sma_fast < sma_slow
+
+  sig <- na.omit(lag(long - short))
+  return(sig)
+}

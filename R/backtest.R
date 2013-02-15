@@ -57,7 +57,7 @@ Execute <- function
 ) {
   sig <- sig*size
   if (do.lag) {
-    # simulate execution fo signals, resulting in positions 
+    # simulate execution for signals, resulting in positions 
     # case:
     # sig price  -> pos price
     #  1    P        0    P

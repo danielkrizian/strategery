@@ -144,6 +144,10 @@ Trades <- function (portfolio, refresh=T) {
   
   pos <- portfolio$pos
   symbols <- colnames(pos)
+  if(length(colnames(pos)) < NCOL(pos)) {
+    symbols <- colnames(pos) <- colnames(market$prices)  # QUICK FIX
+    warning("Symbol names not found in position matrix. Filled from market$prices.")
+  }
 
   if(any(pos[1,]!=0)){ # include 10 days prior
     fd <- index(pos[1,])
@@ -151,16 +155,20 @@ Trades <- function (portfolio, refresh=T) {
     pos.add <- xts(0, order.by=pd )
     pos <- rbind(pos.add,pos)
   }
-  
+    
   pos.next <- lag.xts(pos, -1, na.pad=T)
   trade <- lag.xts(diff(pos),-1,na.pad=T)
 
-  tstart = trade & pos.next != 0
-  tend = trade & pos.next == 0
+  tstart <- trade & pos.next != 0
+#   tend <- trade & pos.next == 0 # didnt work for long-short strategy
+  tend <- trade !=0 & pos !=0
   
+  if(sum(tstart, na.rm=T) - sum(tend, na.rm=T) > (NCOL(pos)))
+    warning("Trade start and end imbalance. Check Trades function.")
+    
   prices <- ValuationPrices(pos)
   trades <- c()
-
+    
   for( sym in 1:NCOL(pos)) {
     
     tstarti = which(tstart[,sym])
