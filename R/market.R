@@ -1,6 +1,13 @@
 #' Some Title
 #' @export
-updateSymbols <- function(Symbol,src="yahoo", db.path="C:/R/Trading Rules/Data/Market") {
+updateSymbols <- function
+(
+  Symbol,
+  src="yahoo", 
+  db.path="C:/R/Data/Market"
+){
+  storedTZ <- Sys.getenv("TZ")
+  Sys.setenv(TZ = "GMT")
   .env <- environment()
   getSymbols(Symbol, src="FI"
              ,dir=db.path
@@ -20,6 +27,7 @@ updateSymbols <- function(Symbol,src="yahoo", db.path="C:/R/Trading Rules/Data/M
     assign( Symbol, rbind(old, append ), pos=.env)
     saveSymbols.common(Symbol, base_dir=db.path, env=.env)
   }
+  Sys.setenv(TZ = storedTZ)
 }
 
 #' Some Title
