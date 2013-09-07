@@ -572,16 +572,21 @@ runLength <- function(x) {
   (x) * unlist(lapply(rle(as.vector(x))$lengths, seq_len))
 }
 
+
+#' Number of barse since a condition has been met
+#' 
+#' @export
 BarsSince <- function(x) runLength(!x)
 
-
+#' Remove excessive signals
+#' 
+#' returns 1 on the first occurence of "true" signal in x
+#' then returns 0 until y is true even if there are "true" signals in x
+#' @export
 ExRem <- function(x,y=!x) {
-  #   removes excessive signals:
-  # returns 1 on the first occurence of "true" signal in x
-  # then returns 0 until y is true even if there are "true" signals in x
   filter=FALSE
-  x[is.na(x)] <- 0
-  y[is.na(y)] <- 0
+  x[is.na(x)] <- FALSE
+  y[is.na(y)] <- FALSE
   
   for (i in 1:length(x)) {
     if(filter) {
@@ -593,23 +598,46 @@ ExRem <- function(x,y=!x) {
   x
 }
 
-
-fill <- function(x,y=!x) {
-  #   works as a flip/flop device or "latch" (electronic/electric engineers will know what I mean)
-  #   returns 1 from the first occurence of TRUE signal in x
-  #   until a TRUE occurs in y which resets the state back to zero
-  #   unil next TRUE is detected in x...  
-  #   this essentially reverts the process of ExRem - multiple signals are back again
-  #   TEST : fill(c(1,1,0,1),c(1,0,0,0))
-  x[is.na(x)] <- 0
-  y[is.na(y)] <- 0
+#' Remove excessive signals
+#' 
+#' works as a flip/flop device or "latch" (electronic/electric engineers will know what I mean
+#' returns 1 from the first occurence of TRUE signal in x
+#' until a TRUE occurs in y which resets the state back to zero
+#' unil next TRUE is detected in x...  
+#' this essentially reverts the process of ExRem - multiple signals are back again
+#' TEST : fill(c(1,1,0,1),c(1,0,0,0))
+#' @export
+Fill <- function(x,y=!x) {
+  x[is.na(x)] <- FALSE
+  y[is.na(y)] <- FALSE
   latch <- FALSE
   for (i in 1:length(x)) {
     if(x[i]) latch <- TRUE
-    if(latch) x[i] <- TRUE
     if(y[i]) latch <- FALSE
+    if(latch) x[i] <- TRUE
+#     if(y[i]) latch <- FALSE # include also this line in a variant where x=T where y=T
   }
   x
+}
+
+getPos <- function(long,short){
+  out <- long
+  out$short <- short
+  out$ls <- BarsSince(out[,1])
+  out$ss <- BarsSince(out$short)
+  out$pos <- 1 * (out$ls < out$ss) + (-1) * (out$ls > out$ss)
+  return(out$pos)
+}
+
+
+BySymbol <- function(x) {
+  out <- list()
+  for(sym in 1:NCOL(x[[1]])) {
+     out[[sym]] <- merge(x$el[,sym],x$xl[,sym],x$es[,sym],x$xs[,sym])
+     colnames(out[[sym]]) <- c("el","xl","es","xs")
+  }
+  names(out) <- colnames(x[[1]])
+  return(out)
 }
 
 sigDuration <- function (label, data = mktdata, column , bars = 0, relationship = c("gt","lt", "eq", "gte", "lte") ) {

@@ -19,13 +19,13 @@ summary.returns <- function(R, stats, as.rows=T, ...) {
   ans
 }
 
-#' Some Title
+#' Look up statistic function
 #' 
+#' Search for statistic function by function name (incl. "compute." variant) 
+#' or by name defined in statistics list
+#' returns function
 #' @export
 stat.fun <- function(name) {
-  # search for statistic function by function name (incl. "compute." variant) 
-  # or by name defined in statistics list
-  # returns function
   l <- statistics
   label <- ifelse(is.null(l[[name]]), name, l[[name]][1])
   names(name) <- label
@@ -47,24 +47,23 @@ stat.fun <- function(name) {
   else stop(paste("Couldn't find function",name,". Add it to the definitions table"))
 }
 
-#' Some Title
+#' Compute performance statistic
 #' 
+#' computes statistic, using function or name of the statistic supplied. 
+#' TODO (Function intelligently looks up required arguments from the object slots. Some arguments are assumed, even if not provided with exact name: e.g. if slot 'ret' exists, it will be passed to the functions as 'x' argument)
+#' stats - character vector of either function names or names of statistics (as defined)
+#' ... - arguments passed to functions
+#' names - (optional) names to apply to returned vector
+#' returns named numeric vector of statistics
+  
+#' OPTIONAL TODO: common argument conversions: 
+#' if supplied, convert 'ret' argument name to 'x'
+#' if(all(pm==0)) # desired argument has not been supplied, 
+#' so perform common conversions where applicable
+#' names(args)[pmatch(names(args), 'R', nomatch = 0L) > 0L] <- 'x' #rename arg R to x
+#' pm <- pmatch(names(args), onames, nomatch = 0L)
 #' @export
 compute.stat <- compute.stats <- function(stat, ..., name=NULL){
-  # computes statistic, using function or name of the statistic supplied. 
-  # TODO (Function intelligently looks up required arguments from the object slots. Some arguments are assumed, even if not provided with exact name: e.g. if slot 'ret' exists, it will be passed to the functions as 'x' argument)
-  # stats - character vector of either function names or names of statistics (as defined)
-  # ... - arguments passed to functions
-  # names - (optional) names to apply to returned vector
-  # returns named numeric vector of statistics
-  
-  # OPTIONAL TODO: common argument conversions: 
-  # if supplied, convert 'ret' argument name to 'x'
-  # if(all(pm==0)) # desired argument has not been supplied, 
-  #   #so perform common conversions where applicable
-  #   names(args)[pmatch(names(args), 'R', nomatch = 0L) > 0L] <- 'x' #rename arg R to x
-  # pm <- pmatch(names(args), onames, nomatch = 0L)
-
   single <- function(stat, ...){
     args<-list(...)
     fun <- stat.fun(name=stat)
@@ -234,7 +233,7 @@ Summary <- function
   if(length(stats)==1)
     stats <- switch(stats, 
                     curve=
-                      c('Total Return','CAGR','Sharpe','Volatility','DVR','MAR','Max Daily Drawdown','Average Drawdown','Avg Drawdown Length','Avg Trades Per Year'),
+                      c('Total Return','CAGR','Sharpe','Sortino','Volatility','DVR','MAR','Max Daily Drawdown','Average Drawdown','Avg Drawdown Length','Avg Trades Per Year'),
                     trade=
                       c('Trade Winning %','Average Trade','Average Win','Average Loss','W/L Ratio','Best Trade','Worst Trade','Avg Days in Trade','Expectancy','Profit Factor'),
                     period=
@@ -256,6 +255,104 @@ Summary <- function
     return(out)
 }
 
+#' Some Title
+#' 
+#' top.n - vector. First element is lowest number of values. Second 
+#' @export
+Analyze.trades <- function(x,top.n=5, decreasing=F) {
+  decreasing <- ifelse(decreasing,-1,1)
+  return (x$trades[order(decreasing * x$trades$return)[1:top.n],])
+}
+
+
+#' Some Title
+#' 
+#' top.n - vector. First element is lowest number of values. Second 
+#' @export
+Analyze.years <- function(R,top.n=5) {
+  
+  data <- compute.annual.returns (R=b$R)
+  years <- year(index(data))
+  data <- coredata(data)
+  rownames(data)<- years
+  o <- order(data, decreasing=T)
+  
+  if(length(top.n)<2) top.n <- rep(top.n,2)
+  top <- data[head(o,top.n[1]),]
+  bottom <- data[tail(o,top.n[2]),]
+  bottom <- bottom[order(bottom,decreasing=F)]
+  list(top=top,bottom=bottom)
+}
+
+#' Some Title
+#' 
+#' top.n - vector. First element is lowest number of values. Second 
+#' @export
+Analyze.drawdowns <- function(equity=Equity(R=R,nas=F,drawdown=T), R=NULL, top.n=5) {
+  
+    x = checkData(R[, 1, drop = FALSE], method = "matrix")
+  drawdowns = as.matrix(equity$drawdown)
+  draw = c()
+  begin = c()
+  end = c()
+  length = c(0)
+  trough = c(0)
+  index = 1
+  if (drawdowns[1] >= 0) 
+    priorSign = 1
+  else priorSign = 0
+  from = 1
+  sofar = drawdowns[1]
+  to = 1
+  dmin = 1
+  for (i in 1:length(drawdowns)) {
+    thisSign <- ifelse(drawdowns[i] < 0, 0, 1)
+    if (thisSign == priorSign) {
+      if (drawdowns[i] < sofar) {
+        sofar = drawdowns[i]
+        dmin = i
+      }
+      to = i + 1
+    }
+    else {
+      draw[index] = sofar
+      begin[index] = from
+      trough[index] = dmin
+      end[index] = to
+      from = i
+      sofar = drawdowns[i]
+      to = i + 1
+      dmin = i
+      index = index + 1
+      priorSign = thisSign
+    }
+  }
+  draw[index] = sofar
+  begin[index] = from
+  trough[index] = dmin
+  end[index] = to
+  if(from[1]==1 & to[1]==length(x)+1) len = 0 else len = (end - begin + 1)
+
+    out <- list(return = draw, from = begin, trough = trough, to = end, 
+                length = len, peaktotrough = (trough - 
+                                                begin + 1), recovery = (end - trough))
+    
+    index.sorted <- sort(out$return, index = T)$ix[1:top.n]
+    out <- lapply(out, function(x) x <- x[index.sorted])
+    
+    table <- data.frame("From"=time(R)[out$from], 
+                        "Trough"=time(R)[out$trough], 
+                        "To"=time(R)[out$to], 
+                        "Depth"=base::round(out$return, 4), 
+                        "Length"=out$length, 
+                        "To Trough"=out$peaktotrough,
+                        "Recovery"=ifelse(is.na(time(R)[out$to]), NA, out$recovery))
+  colnames(table) = c("From", "Trough", "To", "Depth", "Length", "To Trough", "Recovery")
+    
+    return(table)
+}
+
+
 ###### STATISTICS VALIDITY CHECKS #######
 
 # Sharpe
@@ -276,7 +373,7 @@ Summary <- function
 
 statistics <- list()
 statistics[['cagr']] <- c("CAGR","Annualized Return")
-statistics[['excess']] <- c("Excess Return")
+# statistics[['excess']] <- c("Excess Return")
 statistics[['twr']] <- c("TWR")
 statistics[['total.return']] <- c('Total Return')
 statistics[['sigma']] <- c("Volatility","Annualized StDev")
@@ -284,6 +381,7 @@ statistics[['max.drawdown']] <- c("Max Drawdown","Max Daily Drawdown","Max DD")
 statistics[['avg.drawdown']] <- c('Average Drawdown')
 statistics[['avg.drawdown.length']] <- c('Avg Drawdown Length')
 statistics[["sharpe"]] <- c("Sharpe", "Sharpe Ratio")
+statistics[["sortino"]] <- c("Sortino", "Sortino Ratio")
 statistics[["dvr"]] <- c("DVR")
 statistics[["mar"]] <- c("MAR")
 statistics[["trades.per.year"]] <- c('Trades Per Year','Avg Trades Per Year')
@@ -419,10 +517,33 @@ compute.twr <- function(equity=cumprod(1 + R), R=NULL)
 #' 
 #' @export
 compute.sigma <- function(R) {
-  temp = compute.annual.factor(R)
+  f = compute.annual.factor(R)
   x = as.vector(coredata(R))
-  return( sqrt(temp)*sd(x) )
+  return( sqrt(f)*sd(x) )
 }
+
+#' Some Title
+#' 
+#' @export
+compute.downside.deviation <- function (R, MAR = 0, method = c("full", "subset")) {
+  method = method[1]
+  R <- as.vector(R)
+    if (!is.null(dim(MAR)))
+      MAR = mean(checkData(MAR, method = "vector"))
+    r = subset(R, R < MAR)
+    switch(method, full = {
+      len = length(R)
+    }, subset = {
+      len = length(r)
+    })
+
+#     if (!is.null(dim(MAR))) MAR = as.numeric(Return.annualized(MAR,geometric=FALSE))
+#     MARlabel <- paste("Downside Deviation (MAR = ", round(MAR * 100, 1), "%)", sep = "")
+
+    return(sqrt(sum((r - MAR)^2)/len))
+}
+
+
 
 #' Some Title
 #' 
@@ -432,6 +553,23 @@ compute.sharpe <- function(R) {
   R = coredata(R)
   return(sqrt(f) * mean(R) / apply(R,2,sd) )
 }
+
+#' Some Title
+#' TODO: currently supports only constant MAR
+#' @export
+compute.sortino <- function(R, MAR=0) {
+  f = compute.annual.factor(R)
+  R = coredata(R)
+  
+  if(is.null(dim(MAR)))
+    excess.R <- R - MAR
+  else (stop("MAR vector not yet supported"))
+
+  MARlabel <- paste(round(mean(MAR) * 100, 3), "%)", sep = "")
+  
+  return( sqrt(f) * mean(excess.R) / compute.downside.deviation(R, MAR=MAR) )
+}
+
 
 #' Some Title
 #' 
@@ -783,43 +921,6 @@ compute.time.period <- function (equity=cumprod(1 + R), R=NULL) {
   ret <- join( format( range(index(cumprod(1 + R))), '%b %Y'), ' - ')
   Sys.setlocale(category="LC_TIME", locale=temp)
   return(ret)
-}
-
-#' Some Title
-#' 
-#' @export
-DownsideDeviation <- function (R, MAR = 0, method = c("subset", "full")) 
-{
-  # fixing bug when R is xts and MAR is not a single figure Error in dimnames(x) <- dn : length of 'dimnames' [1] not equal to array extent
-  method = method[1]
-  if (is.vector(R)) {
-    R = na.omit(R)
-    if (!is.null(dim(MAR))) 
-      MAR = mean(checkData(MAR, method = "vector"))
-    r = subset(R, R < MAR)
-    switch(method, full = {
-      len = length(R)
-    }, subset = {
-      len = length(r)
-    })
-    result = sqrt(sum((r - MAR)^2)/len)
-    return(result)
-  }
-  else {
-    R = checkData(R, method = "matrix")
-    result = apply(R, MARGIN = 2, DownsideDeviation, MAR = MAR, 
-                   method = method)
-    dim(result) = c(1, NCOL(R))
-    colnames(result) = colnames(R)
-    #     rownames(result) = paste("Downside Deviation (MAR = ", round(MAR * 100, 1), "%)", sep = "")
-    # custom code
-    #     if (!is.null(dim(MAR))) MAR = mean(checkData(MAR, method = "vector"))
-    if (!is.null(dim(MAR))) MAR = as.numeric(Return.annualized(MAR,geometric=FALSE))
-    
-    rownames(result) = paste("Downside Deviation (MAR = ", round(MAR * 100, 1), "%)", sep = "")
-    # custom code end
-    return(result)
-  }
 }
 
 Return.annualized <- function (R, scale = NA, geometric = TRUE, ...) 

@@ -157,7 +157,7 @@ Trades <- function (portfolio, refresh=T) {
   }
     
   pos.next <- lag.xts(pos, -1, na.pad=T)
-  trade <- lag.xts(diff(pos),-1,na.pad=T)
+  trade <- lag.xts(diff.xts(pos),-1,na.pad=T)
 
   tstart <- trade & pos.next != 0
 #   tend <- trade & pos.next == 0 # didnt work for long-short strategy
