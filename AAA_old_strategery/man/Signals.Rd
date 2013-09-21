@@ -2,7 +2,8 @@
 \alias{Signals}
 \title{Generate signals}
 \usage{
-  Signals(strategy, pars, granular = F, sim.gaps = T)
+  Signals(strategy, pars, granular = F, sim.gaps = T,
+    pos = T)
 }
 \description{
   Generate signals
