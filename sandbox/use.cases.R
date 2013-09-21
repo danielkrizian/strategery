@@ -1,5 +1,3 @@
-#TODO: Test 2 symbols, if by=Instrument really works
-# BuyPrice, SellPrice
 require(strategery)
 require(data.table)
 require(xts)
