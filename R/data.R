@@ -1,7 +1,10 @@
 
 
 showInstruments <- function(){
-  source("sandbox/data.R")
+  require(data.table)
+  Market <<- as.data.table.OHLC(SPX)
+  R <<- Market
+  R[,Raw:=ROC(Close), by=Instrument]
 }
 
 #' blabla
@@ -44,8 +47,3 @@ Cl.data.table <- Close.data.table <- function(x) {
   setkeyv(x,originalkey)
   return(out)
 }
-
-require(data.table)
-Market <- as.data.table.OHLC(SPX)
-R <- Market
-R[,Raw:=ROC(Close), by=Instrument]
