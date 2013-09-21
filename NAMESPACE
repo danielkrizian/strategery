@@ -1,0 +1,7 @@
+export(as.data.table.xts)
+export(Backtest)
+export(BarsSince)
+export(Cross)
+export(ExRem)
+export(Fill)
+export(showInstruments)
