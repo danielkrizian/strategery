@@ -24,20 +24,5 @@ Depends:
     xtsExtra
 Collate:
     'backtest.R'
-    'colors.R'
-    'health.R'
-    'charts.R'
-    'indicators.R'
-    'market.R'
-    'parallel.R'
-    'parameters.R'
-    'performance.R'
-    'portfolios.R'
-    'position.sizing.R'
-    'random.R'
-    'rules.R'
-    'strategies.R'
-    'time.series.R'
-    'util.code.R'
-    'util.R'
+    'data.R'
 Repository: CRAN
