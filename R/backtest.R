@@ -102,6 +102,10 @@ Backtest <- function() {
   SellPrice <- getOption("SellPrice")
   ShortPrice <- getOption("ShortPrice")
   CoverPrice <- getOption("CoverPrice")
+  
+  if(is.null(BuyPrice) | is.null(SellPrice)| is.null(ShortPrice) | is.null(CoverPrice))
+    stop("Undefined Buy/Sell/Short/Cover Prices.")
+  
   AddColumn(Buy)
   AddColumn(Sell)
   AddColumn(Short)
