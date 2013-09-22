@@ -1,3 +1,4 @@
+export(AddColumn)
 export(as.data.table.xts)
 export(Backtest)
 export(BarsSince)
