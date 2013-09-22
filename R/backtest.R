@@ -147,7 +147,7 @@ AddColumn <- function(x, name) {
   if(missing(name))
     name <- deparse(substitute(x))
   if(is.call(x) | is.symbol(x) | is.vector(x)) {
-    R[,substitute(name):=eval(x,envir=.SD), by=Instrument]
+    R[,name:=eval(x,envir=.SD), by=Instrument]
   } else if(is.data.table(x)) {
     R <- x[R, roll=TRUE, nomatch=NA]
   }
