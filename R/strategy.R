@@ -1,3 +1,4 @@
+#' @export
 newStrategy <- function 
 (name
  , label="BuyHold"
@@ -6,6 +7,7 @@ newStrategy <- function
   
 }
 
+#' @export
 saveStrategy <- function
 (
 )
