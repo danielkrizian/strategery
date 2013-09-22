@@ -1,12 +1,19 @@
 Package: strategery
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
-Date: 2012-12-21
-Author: Who wrote it
+Title: Quant Strategy Specification, Backtesting, Optimization And Statistical
+    Analysis Workflow
+Version: 2.0
+Date: 2013-09-22
+Author: Daniel Krizian <daniel.krizian@gmail.com>
 Maintainer: Daniel Krizian <daniel.krizian@gmail.com>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Description: System for testing strategies. The goal is to combine simple
+    abstraction high-level syntax similar to Amibroker's AFL language
+    (www.amibroker.com), flexibility of R - for example, Amibroker/Tradestation
+    are constrained to technical analysis and can't work flexibly with
+    fundamental data (quant value screen historical backtests) speed of
+    data.table - which is implemented in C++, has faster sorting algos vs xts
+    and uses database concepts.
+License: TBD
 Depends:
     RColorBrewer,
     FinancialInstrument,
@@ -21,10 +28,9 @@ Depends:
     grid,
     gridExtra,
     gridBase,
-    xtsExtra,
-    data.table
+    xtsExtra
 Collate:
     'backtest.R'
     'data.R'
     'strategy.R'
-Repository: CRAN
+Repository: GitHub <github.com/danielkrizian/strategery> ; CRAN in the future
