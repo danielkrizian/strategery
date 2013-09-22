@@ -1,8 +1,5 @@
 #' blabla
 #' 
-#' Exchange Open and close times
-#' This should be ticker-specific
-#' TODO: Currently Package global variable. Rework to be ticker/exchange specific.
 #' @param x An xts object with OHLC-like structure (quantmod::is.OHLC(x) == TRUE) 
 #' @export
 showInstruments <- function(){
@@ -10,7 +7,7 @@ showInstruments <- function(){
   Market<- as.data.table.OHLC(SPX)
   R <- Market
   R[,Raw:=ROC(Close), by=Instrument]
-  R <<- R
+  assign("R", value=R, inherits=TRUE, envir=.GlobalEnv)
   return(as.character(R[,list(Unique=first(Instrument)),by=Instrument][,list(Instrument)]))
 }
 
