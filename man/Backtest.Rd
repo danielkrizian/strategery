@@ -5,6 +5,6 @@
   Backtest()
 }
 \description{
-  TODO: ?':=' speedup using set()
+  blabla
 }
 
