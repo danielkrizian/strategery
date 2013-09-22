@@ -87,7 +87,6 @@ lag2 <- function(x, k) {
 
 #' blabla
 #' 
-#' TODO: ?':=' speedup using set()
 #' @export
 Backtest <- function() {
   buydelay <- getOption("TradeDelays")$Buy
@@ -141,14 +140,17 @@ Backtest <- function() {
   return(R)
 }
 
+#' blabla
+#' 
+#' @export
 AddColumn <- function(x, name) {
   if(missing(name))
     name <- deparse(substitute(x))
   if(is.call(x) | is.symbol(x) | is.vector(x)) {
-    out <- R[,substitute(name):=eval(x,envir=.SD), by=Instrument]
+    R[,substitute(name):=eval(x,envir=.SD), by=Instrument]
   } else if(is.data.table(x)) {
-    out <- x[R, roll=TRUE, nomatch=NA]
+    R <- x[R, roll=TRUE, nomatch=NA]
   }
-  assign("R",value=out,inherits=TRUE)
+  #assign("R",value=out,inherits=TRUE)
   
 }
