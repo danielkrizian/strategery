@@ -94,10 +94,10 @@ Backtest <- function() {
   selldelay <- getOption("TradeDelays")$Sell
   shortdelay <- getOption("TradeDelays")$Short
   coverdelay <- getOption("TradeDelays")$Cover
-  if(!exists("Buy")) Buy <- quote(0)
-  if(!exists("Sell")) Sell <- quote(0)
-  if(!exists("Short")) Short <- quote(0)
-  if(!exists("Cover")) Cover <- quote(0)
+  if(!exists("Buy")) Buy <- quote(FALSE)
+  if(!exists("Sell")) Sell <- quote(FALSE)
+  if(!exists("Short")) Short <- quote(FALSE)
+  if(!exists("Cover")) Cover <- quote(FALSE)
   BuyPrice <- getOption("BuyPrice")
   SellPrice <- getOption("SellPrice")
   ShortPrice <- getOption("ShortPrice")
