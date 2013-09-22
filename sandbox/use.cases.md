@@ -31,8 +31,20 @@ Specify time filter when the strategy trades (basic examples: at Open prices or 
 
 
 ```r
-options(buydelay=1, selldelay=1, shortdelay=1, coverdelay=1
-        , buyprice="Close", sellprice="Close", shortprice="Close", coverprice="Close")
+options(key=c("Instrument","idate"))
+options(BuyPrice=data.table(Instrument="SPX"
+                            , idate=as.IDate(index(SPX))
+                            , BuyPrice=as.vector(SPX$SPX.Close)
+                            , key=c("Instrument","idate")))
+```
+
+```
+## Error: could not find function "data.table"
+```
+
+```r
+options(BuyPrice=quote(Close), SellPrice=quote(Open), CoverPrice=quote(Open), ShortPrice=quote(Open))
+options(TradeDelays=list(Buy=1,Sell=1,Short=1,Cover=1))
 ```
 
 
@@ -41,13 +53,8 @@ options(buydelay=1, selldelay=1, shortdelay=1, coverdelay=1
 
 ```r
 require(strategery)
-data(SPX)
-```
-
-
-
-```r
-require(strategery)
+require(data.table)
+require(xts)
 data(SPX)
 ```
 
@@ -58,29 +65,35 @@ See what tradable instrument data is available (markets universe) from your pref
 showInstruments()
 ```
 
-Select the markets universe from the available instruments. This can be reset for each strategy separately later.
-
-```r
-options(instruments=c("SPY", "AAPL"))
+```
+## [1] "SPX"
 ```
 
 
-1. Buy & Hold Strategy (Strategic Asset Allocation)
+1. Buy & Hold Strategy
 -------------------------------------------------------
 
 
-### 1.1 No Rebalancing (Value-Weighted)
+### 1.1.1 Single-Asset
+
+Select the markets universe from the available instruments. This can be reset for each strategy separately later.
+
+```r
+options(instruments=c("SPX"))
+```
+
 
 
 ```r
-newStrategy(name="BuyHold SPY and AAPL"
+newStrategy(name="BuyHold SPX"
             , label="BuyHold")
 ```
 
 
 
 ```r
-Buy <- quote(1)
+Buy  <- quote(TRUE)
+Sell <- quote(FALSE)
 ```
 
 
@@ -91,7 +104,104 @@ from the selected universe at the initial buy. No rebalancing throughout the bac
 
 ```r
 Backtest()
+```
+
+```
+##        Instrument      idate    Open   Close        Raw   Buy  Sell Short Cover BuyPrice SellPrice ShortPrice CoverPrice Pos     Return
+##     1:        SPX 1927-12-30   17.66   17.66         NA    NA    NA    NA    NA    17.66     17.66      17.66      17.66   0         NA
+##     2:        SPX 1928-01-03   17.76   17.76  0.0056465  TRUE FALSE FALSE FALSE    17.76     17.76      17.76      17.76   1  0.0000000
+##     3:        SPX 1928-01-04   17.72   17.72 -0.0022548 FALSE FALSE FALSE FALSE    17.72     17.72      17.72      17.72   1 -0.0022548
+##     4:        SPX 1928-01-05   17.55   17.55 -0.0096400 FALSE FALSE FALSE FALSE    17.55     17.55      17.55      17.55   1 -0.0096400
+##     5:        SPX 1928-01-06   17.66   17.66  0.0062482 FALSE FALSE FALSE FALSE    17.66     17.66      17.66      17.66   1  0.0062482
+##     6:        SPX 1928-01-09   17.50   17.50 -0.0091013 FALSE FALSE FALSE FALSE    17.50     17.50      17.50      17.50   1 -0.0091013
+##     7:        SPX 1928-01-10   17.37   17.37 -0.0074563 FALSE FALSE FALSE FALSE    17.37     17.37      17.37      17.37   1 -0.0074563
+##     8:        SPX 1928-01-11   17.35   17.35 -0.0011521 FALSE FALSE FALSE FALSE    17.35     17.35      17.35      17.35   1 -0.0011521
+##     9:        SPX 1928-01-12   17.47   17.47  0.0068926 FALSE FALSE FALSE FALSE    17.47     17.47      17.47      17.47   1  0.0068926
+##    10:        SPX 1928-01-13   17.58   17.58  0.0062768 FALSE FALSE FALSE FALSE    17.58     17.58      17.58      17.58   1  0.0062768
+##    ---                                                                                                                                 
+## 21331:        SPX 2012-12-05 1407.05 1409.28  0.0015836 FALSE FALSE FALSE FALSE  1409.28   1407.05    1407.05    1407.05   1  0.0015836
+## 21332:        SPX 2012-12-06 1409.43 1413.94  0.0033012 FALSE FALSE FALSE FALSE  1413.94   1409.43    1409.43    1409.43   1  0.0033012
+## 21333:        SPX 2012-12-07 1413.95 1418.07  0.0029167 FALSE FALSE FALSE FALSE  1418.07   1413.95    1413.95    1413.95   1  0.0029167
+## 21334:        SPX 2012-12-10 1418.07 1418.55  0.0003384 FALSE FALSE FALSE FALSE  1418.55   1418.07    1418.07    1418.07   1  0.0003384
+## 21335:        SPX 2012-12-11 1418.55 1427.84  0.0065276 FALSE FALSE FALSE FALSE  1427.84   1418.55    1418.55    1418.55   1  0.0065276
+## 21336:        SPX 2012-12-12 1427.84 1428.48  0.0004481 FALSE FALSE FALSE FALSE  1428.48   1427.84    1427.84    1427.84   1  0.0004481
+## 21337:        SPX 2012-12-13 1428.48 1419.45 -0.0063415 FALSE FALSE FALSE FALSE  1419.45   1428.48    1428.48    1428.48   1 -0.0063415
+## 21338:        SPX 2012-12-14 1419.45 1413.58 -0.0041440 FALSE FALSE FALSE FALSE  1413.58   1419.45    1419.45    1419.45   1 -0.0041440
+## 21339:        SPX 2012-12-17 1413.54 1430.36  0.0118007 FALSE FALSE FALSE FALSE  1430.36   1413.54    1413.54    1413.54   1  0.0118007
+## 21340:        SPX 2012-12-18 1430.47 1446.79  0.0114211 FALSE FALSE FALSE FALSE  1446.79   1430.47    1430.47    1430.47   1  0.0114211
+```
+
+```r
 saveStrategy()
+```
+
+```
+## NULL
+```
+
+
+### 1.1.2 Multi-Asset (Strategic Asset Allocation). No Rebalancing (Value-Weighted)
+
+
+```r
+options(instruments=c("SPY","AAPL"))
+```
+
+
+
+```r
+newStrategy(name="BuyHold SPY and AAPL"
+            , label="BuyHold")
+```
+
+
+
+```r
+Buy  <- quote(TRUE)
+Sell <- quote(FALSE)
+```
+
+
+
+Default position size 1 unit is used for each symbol 
+from the selected universe at the initial buy. No rebalancing throughout the backtest.
+
+
+```r
+Backtest()
+```
+
+```
+##        Instrument      idate    Open   Close        Raw   Buy  Sell Short Cover BuyPrice SellPrice ShortPrice CoverPrice Pos     Return
+##     1:        SPX 1927-12-30   17.66   17.66         NA    NA    NA    NA    NA    17.66     17.66      17.66      17.66   0         NA
+##     2:        SPX 1928-01-03   17.76   17.76  0.0056465  TRUE FALSE FALSE FALSE    17.76     17.76      17.76      17.76   1  0.0000000
+##     3:        SPX 1928-01-04   17.72   17.72 -0.0022548 FALSE FALSE FALSE FALSE    17.72     17.72      17.72      17.72   1 -0.0022548
+##     4:        SPX 1928-01-05   17.55   17.55 -0.0096400 FALSE FALSE FALSE FALSE    17.55     17.55      17.55      17.55   1 -0.0096400
+##     5:        SPX 1928-01-06   17.66   17.66  0.0062482 FALSE FALSE FALSE FALSE    17.66     17.66      17.66      17.66   1  0.0062482
+##     6:        SPX 1928-01-09   17.50   17.50 -0.0091013 FALSE FALSE FALSE FALSE    17.50     17.50      17.50      17.50   1 -0.0091013
+##     7:        SPX 1928-01-10   17.37   17.37 -0.0074563 FALSE FALSE FALSE FALSE    17.37     17.37      17.37      17.37   1 -0.0074563
+##     8:        SPX 1928-01-11   17.35   17.35 -0.0011521 FALSE FALSE FALSE FALSE    17.35     17.35      17.35      17.35   1 -0.0011521
+##     9:        SPX 1928-01-12   17.47   17.47  0.0068926 FALSE FALSE FALSE FALSE    17.47     17.47      17.47      17.47   1  0.0068926
+##    10:        SPX 1928-01-13   17.58   17.58  0.0062768 FALSE FALSE FALSE FALSE    17.58     17.58      17.58      17.58   1  0.0062768
+##    ---                                                                                                                                 
+## 21331:        SPX 2012-12-05 1407.05 1409.28  0.0015836 FALSE FALSE FALSE FALSE  1409.28   1407.05    1407.05    1407.05   1  0.0015836
+## 21332:        SPX 2012-12-06 1409.43 1413.94  0.0033012 FALSE FALSE FALSE FALSE  1413.94   1409.43    1409.43    1409.43   1  0.0033012
+## 21333:        SPX 2012-12-07 1413.95 1418.07  0.0029167 FALSE FALSE FALSE FALSE  1418.07   1413.95    1413.95    1413.95   1  0.0029167
+## 21334:        SPX 2012-12-10 1418.07 1418.55  0.0003384 FALSE FALSE FALSE FALSE  1418.55   1418.07    1418.07    1418.07   1  0.0003384
+## 21335:        SPX 2012-12-11 1418.55 1427.84  0.0065276 FALSE FALSE FALSE FALSE  1427.84   1418.55    1418.55    1418.55   1  0.0065276
+## 21336:        SPX 2012-12-12 1427.84 1428.48  0.0004481 FALSE FALSE FALSE FALSE  1428.48   1427.84    1427.84    1427.84   1  0.0004481
+## 21337:        SPX 2012-12-13 1428.48 1419.45 -0.0063415 FALSE FALSE FALSE FALSE  1419.45   1428.48    1428.48    1428.48   1 -0.0063415
+## 21338:        SPX 2012-12-14 1419.45 1413.58 -0.0041440 FALSE FALSE FALSE FALSE  1413.58   1419.45    1419.45    1419.45   1 -0.0041440
+## 21339:        SPX 2012-12-17 1413.54 1430.36  0.0118007 FALSE FALSE FALSE FALSE  1430.36   1413.54    1413.54    1413.54   1  0.0118007
+## 21340:        SPX 2012-12-18 1430.47 1446.79  0.0114211 FALSE FALSE FALSE FALSE  1446.79   1430.47    1430.47    1430.47   1  0.0114211
+```
+
+```r
+saveStrategy()
+```
+
+```
+## NULL
 ```
 
 
@@ -244,6 +354,103 @@ saveStrategy()
 
 3. Trading Strategies (Buy/Sell/Short/Cover Signals To Enter/Exit Trades)
 -------------------------------------------------------
+
+### 3.1.1 Simple Moving-Average Crossover(Single-Market)
+
+Select the markets universe from the available instruments. This can be reset for each strategy separately later.
+
+```r
+options(instruments=c("SPX"))
+showInstruments()
+```
+
+```
+## [1] "SPX"
+```
+
+
+
+```r
+Buy <- quote(Cross(Close, SMA(Close,n)))
+Sell <- quote(Cross(SMA(Close,n), Close))
+```
+
+
+
+```r
+n<-5
+```
+
+
+
+```r
+AddColumn( quote(SMA(Close, n)), paste("SMA",n))
+```
+
+```
+##        Instrument      idate    Open   Close        Raw   SMA 5
+##     1:        SPX 1927-12-30   17.66   17.66         NA      NA
+##     2:        SPX 1928-01-03   17.76   17.76  0.0056465      NA
+##     3:        SPX 1928-01-04   17.72   17.72 -0.0022548      NA
+##     4:        SPX 1928-01-05   17.55   17.55 -0.0096400      NA
+##     5:        SPX 1928-01-06   17.66   17.66  0.0062482   17.67
+##     6:        SPX 1928-01-09   17.50   17.50 -0.0091013   17.64
+##     7:        SPX 1928-01-10   17.37   17.37 -0.0074563   17.56
+##     8:        SPX 1928-01-11   17.35   17.35 -0.0011521   17.49
+##     9:        SPX 1928-01-12   17.47   17.47  0.0068926   17.47
+##    10:        SPX 1928-01-13   17.58   17.58  0.0062768   17.45
+##    ---                                                         
+## 21331:        SPX 2012-12-05 1407.05 1409.28  0.0015836 1411.58
+## 21332:        SPX 2012-12-06 1409.43 1413.94  0.0033012 1411.18
+## 21333:        SPX 2012-12-07 1413.95 1418.07  0.0029167 1411.56
+## 21334:        SPX 2012-12-10 1418.07 1418.55  0.0003384 1413.38
+## 21335:        SPX 2012-12-11 1418.55 1427.84  0.0065276 1417.54
+## 21336:        SPX 2012-12-12 1427.84 1428.48  0.0004481 1421.38
+## 21337:        SPX 2012-12-13 1428.48 1419.45 -0.0063415 1422.48
+## 21338:        SPX 2012-12-14 1419.45 1413.58 -0.0041440 1421.58
+## 21339:        SPX 2012-12-17 1413.54 1430.36  0.0118007 1423.94
+## 21340:        SPX 2012-12-18 1430.47 1446.79  0.0114211 1427.73
+```
+
+```r
+Backtest()
+```
+
+```
+##        Instrument      idate    Open   Close        Raw   SMA 5   Buy  Sell Short Cover BuyPrice SellPrice ShortPrice CoverPrice Pos     Return
+##     1:        SPX 1927-12-30   17.66   17.66         NA      NA    NA    NA    NA    NA    17.66     17.66      17.66      17.66   0         NA
+##     2:        SPX 1928-01-03   17.76   17.76  0.0056465      NA FALSE FALSE FALSE FALSE    17.76     17.76      17.76      17.76   0  0.0000000
+##     3:        SPX 1928-01-04   17.72   17.72 -0.0022548      NA FALSE FALSE FALSE FALSE    17.72     17.72      17.72      17.72   0  0.0000000
+##     4:        SPX 1928-01-05   17.55   17.55 -0.0096400      NA FALSE FALSE FALSE FALSE    17.55     17.55      17.55      17.55   0  0.0000000
+##     5:        SPX 1928-01-06   17.66   17.66  0.0062482   17.67 FALSE FALSE FALSE FALSE    17.66     17.66      17.66      17.66   0  0.0000000
+##     6:        SPX 1928-01-09   17.50   17.50 -0.0091013   17.64 FALSE  TRUE FALSE FALSE    17.50     17.50      17.50      17.50   0 -0.0090600
+##     7:        SPX 1928-01-10   17.37   17.37 -0.0074563   17.56 FALSE FALSE FALSE FALSE    17.37     17.37      17.37      17.37   0  0.0000000
+##     8:        SPX 1928-01-11   17.35   17.35 -0.0011521   17.49 FALSE FALSE FALSE FALSE    17.35     17.35      17.35      17.35   0  0.0000000
+##     9:        SPX 1928-01-12   17.47   17.47  0.0068926   17.47 FALSE FALSE FALSE FALSE    17.47     17.47      17.47      17.47   0  0.0000000
+##    10:        SPX 1928-01-13   17.58   17.58  0.0062768   17.45 FALSE FALSE FALSE FALSE    17.58     17.58      17.58      17.58   0  0.0000000
+##    ---                                                                                                                                         
+## 21331:        SPX 2012-12-05 1407.05 1409.28  0.0015836 1411.58 FALSE FALSE FALSE FALSE  1409.28   1407.05    1407.05    1407.05   0  0.0000000
+## 21332:        SPX 2012-12-06 1409.43 1413.94  0.0033012 1411.18 FALSE FALSE FALSE FALSE  1413.94   1409.43    1409.43    1409.43   0  0.0000000
+## 21333:        SPX 2012-12-07 1413.95 1418.07  0.0029167 1411.56  TRUE FALSE FALSE FALSE  1418.07   1413.95    1413.95    1413.95   1  0.0000000
+## 21334:        SPX 2012-12-10 1418.07 1418.55  0.0003384 1413.38 FALSE FALSE FALSE FALSE  1418.55   1418.07    1418.07    1418.07   1  0.0003384
+## 21335:        SPX 2012-12-11 1418.55 1427.84  0.0065276 1417.54 FALSE FALSE FALSE FALSE  1427.84   1418.55    1418.55    1418.55   1  0.0065276
+## 21336:        SPX 2012-12-12 1427.84 1428.48  0.0004481 1421.38 FALSE FALSE FALSE FALSE  1428.48   1427.84    1427.84    1427.84   1  0.0004481
+## 21337:        SPX 2012-12-13 1428.48 1419.45 -0.0063415 1422.48 FALSE FALSE FALSE FALSE  1419.45   1428.48    1428.48    1428.48   1 -0.0063415
+## 21338:        SPX 2012-12-14 1419.45 1413.58 -0.0041440 1421.58 FALSE  TRUE FALSE FALSE  1413.58   1419.45    1419.45    1419.45   0  0.0000000
+## 21339:        SPX 2012-12-17 1413.54 1430.36  0.0118007 1423.94 FALSE FALSE FALSE FALSE  1430.36   1413.54    1413.54    1413.54   0  0.0000000
+## 21340:        SPX 2012-12-18 1430.47 1446.79  0.0114211 1427.73  TRUE FALSE FALSE FALSE  1446.79   1430.47    1430.47    1430.47   1  0.0000000
+```
+
+```r
+saveStrategy()
+```
+
+```
+## NULL
+```
+
+### 3.1.2 Simple Moving-Average Crossover (Multi-Market)
+
 
 Result is individual equity curve per symbol as if each instrument trades 1 unit. It is then up to position sizing expression in the `PositionSize` object to define weighting scheme and combine instruments into portfolio.
 

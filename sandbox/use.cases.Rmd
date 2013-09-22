@@ -1,6 +1,8 @@
 ```{r,eval=TRUE, echo=FALSE}
 opts_chunk$set(tidy = FALSE)
 opts_chunk$set(eval = FALSE)
+options(width = 400)
+options(datatable.print.topn=10)
 ```
 
 Strategy Specification, Backtesting, Statistical Analysis and Optimization Workflow Mock-Up
@@ -31,52 +33,81 @@ It is thus return-oriented framework, not a transaction-oriented framework.
 Specify whether to trade on a next bar with lag.  
 Specify time filter when the strategy trades (basic examples: at Open prices or Close prices)
 
-```{r setup, eval=FALSE}
-options(buydelay=1, selldelay=1, shortdelay=1, coverdelay=1
-        , buyprice="Close", sellprice="Close", shortprice="Close", coverprice="Close")
+```{r setup, eval=TRUE}
+options(key=c("Instrument","idate"))
+options(BuyPrice=data.table(Instrument="SPX"
+                            , idate=as.IDate(index(SPX))
+                            , BuyPrice=as.vector(SPX$SPX.Close)
+                            , key=c("Instrument","idate")))
+options(BuyPrice=quote(Close), SellPrice=quote(Open), CoverPrice=quote(Open), ShortPrice=quote(Open))
+options(TradeDelays=list(Buy=1,Sell=1,Short=1,Cover=1))
 ```
 
 #### Market Universe
 
 ```{r, eval=TRUE, results='hide', message=FALSE, warning=FALSE}
 require(strategery)
-data(SPX)
-```
-
-```{r, eval=TRUE, results='hide', message=FALSE, warning=FALSE}
-require(strategery)
+require(data.table)
+require(xts)
 data(SPX)
 ```
 
 See what tradable instrument data is available (markets universe) from your prefered data source.
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 showInstruments()
 ```
-Select the markets universe from the available instruments. This can be reset for each strategy separately later.
-```{r,eval=FALSE}
-options(instruments=c("SPY", "AAPL"))
-```
 
-1. Buy & Hold Strategy (Strategic Asset Allocation)
+1. Buy & Hold Strategy
 -------------------------------------------------------
 
 
-### 1.1 No Rebalancing (Value-Weighted)
+### 1.1.1 Single-Asset
 
-```{r,eval=FALSE}
-newStrategy(name="BuyHold SPY and AAPL"
-            , label="BuyHold")
+Select the markets universe from the available instruments. This can be reset for each strategy separately later.
+```{r,eval=TRUE}
+options(instruments=c("SPX"))
 ```
 
 ```{r,eval=FALSE}
-Buy <- quote(1)
+newStrategy(name="BuyHold SPX"
+            , label="BuyHold")
+```
+
+```{r,eval=TRUE}
+Buy  <- quote(TRUE)
+Sell <- quote(FALSE)
 ```
 
 
 Default position size 1 unit is used for each symbol 
 from the selected universe at the initial buy. No rebalancing throughout the backtest.
 
+```{r,eval=TRUE}
+Backtest()
+saveStrategy()
+```
+
+### 1.1.2 Multi-Asset (Strategic Asset Allocation). No Rebalancing (Value-Weighted)
+
+```{r,eval=TRUE}
+options(instruments=c("SPY","AAPL"))
+```
+
 ```{r,eval=FALSE}
+newStrategy(name="BuyHold SPY and AAPL"
+            , label="BuyHold")
+```
+
+```{r,eval=TRUE}
+Buy  <- quote(TRUE)
+Sell <- quote(FALSE)
+```
+
+
+Default position size 1 unit is used for each symbol 
+from the selected universe at the initial buy. No rebalancing throughout the backtest.
+
+```{r,eval=TRUE}
 Backtest()
 saveStrategy()
 ```
@@ -206,6 +237,31 @@ saveStrategy()
 
 3. Trading Strategies (Buy/Sell/Short/Cover Signals To Enter/Exit Trades)
 -------------------------------------------------------
+
+### 3.1.1 Simple Moving-Average Crossover(Single-Market)
+
+Select the markets universe from the available instruments. This can be reset for each strategy separately later.
+```{r Simple.Moving.Average.Single, eval=TRUE}
+options(instruments=c("SPX"))
+showInstruments()
+```
+
+```{r,eval=TRUE}
+Buy <- quote(Cross(Close, SMA(Close,n)))
+Sell <- quote(Cross(SMA(Close,n), Close))
+```
+
+```{r,eval=TRUE}
+n<-5
+```
+
+```{r,eval=TRUE}
+AddColumn( quote(SMA(Close, n)), paste("SMA",n))
+Backtest()
+saveStrategy()
+```
+### 3.1.2 Simple Moving-Average Crossover (Multi-Market)
+
 
 Result is individual equity curve per symbol as if each instrument trades 1 unit. It is then up to position sizing expression in the `PositionSize` object to define weighting scheme and combine instruments into portfolio.
 

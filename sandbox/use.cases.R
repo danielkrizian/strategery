@@ -3,6 +3,7 @@ require(data.table)
 require(xts)
 data(SPX)
 
+options(datatable.print.topn=10)
 
 #options
 options(key=c("Instrument","idate"))
@@ -28,13 +29,13 @@ Buy  <- data.table(Instrument="SPX",idate=as.IDate("1928-01-04"), Buy=1, key=get
 Sell <- quote(FALSE)
 
 #Simple MA crossover
-n<-2
+
 Buy <- quote(Cross(Close, SMA(Close,n)))
 Sell <- quote(Cross(SMA(Close,n), Close))
 
+n<-5
+AddColumn(quote(SMA(Close,n)), paste("SMA",n))
 
-AddColumn(quote(SMA(Close,n)), "SMA 2")
-
-View(Backtest())
+Backtest()
 
 
