@@ -1,5 +1,6 @@
 \name{showInstruments}
 \alias{showInstruments}
+\alias{test}
 \title{blabla}
 \usage{
   showInstruments()

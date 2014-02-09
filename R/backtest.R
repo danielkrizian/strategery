@@ -1,17 +1,102 @@
 
-newStrategy <- function(name="default") {
+
+#' blabla
+#' 
+#' @export
+Backtest <- function(...) {
   
+  # evaluate all rules into model portfolios and 
+  # reconcile them into single model portfolio
+  
+#   applyPositionSignals <- function(portfolio, rules) {return(orders)}
+#   applyOrderSignals <- function(portfolio, rules) {return(orders)}
+  btportfolio <- Portfolio$new() # otherwise initial portfolio object could be passed in via dots 
+  mportfolio <- NULL
+  for(r in ls_rules()) {
+      p <- eval.rule(r)$portfolio
+     
+      mportfolio <- if (is.null(mportfolio)) p
+      else
+        .rbind.data.table(mportfolio, p, use.names=TRUE)
   }
+  setkey(mportfolio, Instrument, Date)
+    
+  mp <- portfolio(data=mportfolio)
+  
+    # apply rules in an existing portfolio, generate orders from the position signal
+
+  orders <- mp$assets[, OrderSize:=c(ifelse(is.null(btportfolio),
+                                            Pos[1],
+                                            Pos[1] - mp$position(Instrument))
+                              ,diff(Pos))
+               , by=Instrument]
+  orders <- orders[OrderSize!=0,][,list(Instrument, Date, OrderSize)]
+
+  # execute orders -> book transactions
+  
+  execute <- function(orders, portfolio=NULL, market=OHLCV, algo="MOC") {
+    # Get portfolio data - if doesn't exist, initialize with date of first signal
+    if(is.null(portfolio)){
+      initDate <- min(orders$Date)
+      portfolio <- data.table(Date=initDate, Instrument=unique(orders$Instrument), Pos=numeric(1), key="Date")
+    }
+
+    # execution algorithm: market on close
+
+    market[,FillDate:=Date]
+    setkey(orders[,Date:=Date + 1],Instrument, Date)
+    orders.filled <- orders[market, roll=1][orders][,Price:=Close][,TxnQty:=OrderSize]
+    orders.filled <- orders.filled[!is.na()]
+    browser()
+    orders.filled <- orders.filled[,list(Instrument, FillDate, TxnQty, Price)]
+    setnames(orders.filled, "FillDate", "Date")
+    setkey(orders.filled, Instrument, Date)
+    txns <- orders.filled[, TxnValue:= TxnQty * Price]
+    return(txns)
+  }
+  
+  txns <- execute(orders)
+
+  # update portfolio positions with new transactions
+  btportfolio$addTxns(txns)
+  btportfolio$calcPL(market=OHLCV) #market=ohlc
+  
+
+  a <- Account$new(portfolios=list(btportfolio))
+  summary <- list()
+  summary$returns <- summary(a$returns())
+  cat(print(summary$returns),"test")
+  
+  plot(a$performance())
+  return(list(account=a, summary=summary))
+}
+
+
+
 
 runLength <- function(x) {
   (x) * unlist(lapply(rle(as.vector(x))$lengths, seq_len))
 }
 
 
-#' Number of barse since a condition has been met
+#' Number of bars since a condition has been met
 #' 
 #' @export
 BarsSince <- function(x) runLength(!x)
+
+#' Number of bars to the next TRUE value
+#' 
+#' @export
+BarsTo <- function(x) {
+  
+  rle <- rle(x)
+  unlist(mapply(function(value, length)
+  {
+    if(value) rep(0, length) else seq(from=length, to=1)
+  }
+                , value=rle$values
+                , length=rle$lengths))
+}
 
 #' Remove excessive signals
 #' 
@@ -56,6 +141,7 @@ Fill <- function(x,y=!x) {
 }
 
 #' Remove excessive signals
+#' 
 #' Gives a "1" or true on the day that x crosses above y Otherwise the result is "0".
 #' To find out when x crosses below y, use the formula Cross(y, x) 
 #' @export
@@ -65,8 +151,17 @@ Cross <- function(x, y) {
   ExRem(above)
 }
 
+anticipate <- function(x, k=1, pad=NA) {
+  k <- abs(k)
+  c( tail(x, -k), rep(pad, k) )
+}
 
-lag2 <- function(x, k) {
+delay <- function(x, k=1, pad=NA) {
+  k <- abs(k)
+  c( rep(pad, k) , head(x, -k) )
+}
+
+shift <- function(x, k) {
   if (!is.vector(x)) 
     stop('x must be a vector')
   if (!is.numeric(k))
@@ -77,80 +172,91 @@ lag2 <- function(x, k) {
     return( c(rep(NA, k), x)[1 : length(x)] )
   }
   else if(k<0) {
-    k
     return( c(x[(-k+1):length(x)], rep(NA, -k)) )
   }
   else if(k==0)
     return(x)
-    
+  
 }
 
-#' blabla
-#' 
-#' @export
-Backtest <- function() {
-  buydelay <- getOption("TradeDelays")$Buy
-  selldelay <- getOption("TradeDelays")$Sell
-  shortdelay <- getOption("TradeDelays")$Short
-  coverdelay <- getOption("TradeDelays")$Cover
-  if(!exists("Buy")) Buy <- quote(FALSE)
-  if(!exists("Sell")) Sell <- quote(FALSE)
-  if(!exists("Short")) Short <- quote(FALSE)
-  if(!exists("Cover")) Cover <- quote(FALSE)
-  BuyPrice <- getOption("BuyPrice")
-  SellPrice <- getOption("SellPrice")
-  ShortPrice <- getOption("ShortPrice")
-  CoverPrice <- getOption("CoverPrice")
+deconstruct_and_eval2 = function(expr, envir = parent.frame(), enclos = parent.frame()) {
   
-  if(is.null(BuyPrice) | is.null(SellPrice)| is.null(ShortPrice) | is.null(CoverPrice))
-    stop("Undefined Buy/Sell/Short/Cover Prices.")
+  if (!mode(expr) %in% c("call", "expression")) 
+    return(expr)
   
-  AddColumn(Buy)
-  AddColumn(Sell)
-  AddColumn(Short)
-  AddColumn(Cover)
-  AddColumn(BuyPrice)
-  AddColumn(SellPrice)
-  AddColumn(ShortPrice)
-  AddColumn(CoverPrice)
-  
-  #R[,el:=eval(Buy,envir=.SD), by=Instrument]
-  #R[,xl:=eval(Sell,envir=.SD), by=Instrument]
-  #R[,es:=eval(Short,envir=.SD), by=Instrument]
-  #R[,xs:=eval(Cover,envir=.SD), by=Instrument]
-  
-  R[,Sell:=ExRem(Sell, Buy), by=Instrument]
-  R[,Buy:=ExRem(Buy,(Sell|Short)), by=Instrument]
-  R[,Cover:=ExRem(Cover,Short), by=Instrument]
-  R[,Short:=ExRem(Short,(Cover|Buy)), by=Instrument]
-  
-  R[,Buy:=lag2(Buy, getOption("TradeDelays")$Buy), by=Instrument]
-  R[,Sell:=lag2(Sell, getOption("TradeDelays")$Sell), by=Instrument]
-  R[,Short:=lag2(Short ,getOption("TradeDelays")$Short), by=Instrument]
-  R[,Cover:=lag2(Cover, getOption("TradeDelays")$Cover), by=Instrument]
-  
-  R[,Pos:=Fill(Buy, Sell|Short)-Fill(Short, Cover|Buy), by=Instrument]
-  
-  PrevClose <- lag2(R$Close, 1)
-  R[,Return:=ifelse(Buy, Close/BuyPrice - 1
-                    , ifelse(Sell, SellPrice/PrevClose - 1
-                             , ifelse(Short, Close/ShortPrice - 1,
-                                      ifelse(Cover, CoverPrice/PrevClose - 1
-                                             ,Pos * Raw )))), by=Instrument]
-  return(R)
-}
-
-#' blabla
-#' 
-#' @export
-AddColumn <- function(x, name) {
-  if(missing(name))
-    name <- deparse(substitute(x))
-  if(is.call(x) | is.symbol(x) | is.vector(x)) {
-    R[,eval(substitute(name)):=eval(x,envir=.SD), by=Instrument]
-  } else if(is.data.table(x)) {
-    R <- x[R, roll=TRUE, nomatch=NA]
+  if (length(expr) == 1) {
+    if (is.call(expr[[1]])) return (deconstruct_and_eval2(expr[[1]]))
+    else return(expr)
   }
-  #assign("R",value=out,inherits=TRUE)
+  # don't evaluate eval's if the environment is specified
   
+  if (expr[[1]] == quote(eval) && length(expr) < 3) {
+    return(deconstruct_and_eval2(eval(expr[[2]], envir, enclos), envir, enclos))
+  }
+  
+  lapply(expr, function(m) {
+    if (is.call(m)) {
+      if (m[[1]] == quote(eval)) eval(m[[2]], envir, enclos)
+      else deconstruct_and_eval2(m, envir, enclos)
+    } else {
+      
+      # my edit to the [.data.table original
+      if(exists(as.character(m),envir=as.environment(R))) {
+        if(!is.function(eval(m, envir=as.environment(R))))
+          eval(m,envir=as.environment(R))
+        else
+          m
+      }
+      if(exists(as.character(m),envir=.GlobalEnv)) {
+        if(!existsFunction(as.character(m)))
+          eval(m)
+        else
+          m
+      } else
+        # end edit
+        m
+    }
+  })
+}
+
+construct = function(l) {
+  if (length(l) == 0) return(NULL)
+  if (length(l) == 1) return(l)
+  
+  if (identical(l[[1]], quote(`function`))) return(as.call(list(l[[1]], l[[2]], construct(l[[3]]))))
+  
+  if (!is.list(l)) return(l)
+  
+  as.call(setNames(lapply(l, function(m) {
+    if (length(m) == 1) m
+    else construct(m)
+  }), names(l)))
+}
+
+#' Some Title
+#' 
+#' @export
+Summary <- function
+(portfolio, # portfolio object, having components R, pos and trades
+ format=F,
+ ... # other arguments passed to format.stats function
+){
+  c("curve", "trade", "period")
+  stats <- switch(stats, 
+                  curve=
+                    c('Total Return','CAGR','Sharpe','Sortino','Volatility','DVR','MAR','Max Daily Drawdown','Average Drawdown','Avg Drawdown Length','Avg Trades Per Year'),
+                  trade=
+                    c('Trade Winning %','Average Trade','Average Win','Average Loss','W/L Ratio','Best Trade','Worst Trade','Avg Days in Trade','Expectancy','Profit Factor'),
+                  period=
+                    c('Time In Market','% Winning Months','Average Winning Month','Average Losing Month','Best Month','Worst Month','% Winning Years','Best Year','Worst Year','Positive 12 Month Periods'),
+                  stats)
+  
+  if(is.null(portfolio$R))
+    portfolio$R <- Returns(portfolio)
+  if(is.null(portfolio$trades))
+    portfolio$trades <- Trades(portfolio)
+  
+  
+  
+  return(out)
 }

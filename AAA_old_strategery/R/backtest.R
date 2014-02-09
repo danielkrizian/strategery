@@ -1,115 +1,104 @@
-signals <- function(x=NULL, el=x$el, xl=x$xl, es=x$es, xs=x$xs, l=x$l, s=x$s, is.raw=ifelse(is.null(x$is.raw),F,x$is.raw), pos=T) {
-
-  if(is.raw) {
-    xl <- ExRem(xl, el)
-    el <- ExRem(el,(xl|es))
-    xs <- ExRem(xs,es)
-    es <- ExRem(es,(xs|el))
-  }
-
-  if(!pos){
-    out <- list(el=el,xl=xl,es=es,xs=xs, l=l, s=s)
-    names(out) <- c("el","xl","es","xs")
-    
-    for(i in 1:length(out)) {
-      colnames(out[[i]]) <- symbols
-    }
-  } else {
-    if(is.null(l) & is.null(s))
-      out <- Fill(el,xl|es)-Fill(es,xs|el)
-    else
-        out <- l - s
-    out <- lag.xts(out,na.pad=T) # because signal predicts forward position (timestamp confusion) 
-    out[1,] <- 0
-    colnames(out) <- symbols
-  }
-
-  return(out)
-}
-
-#'Generate signals
+#' View summary table of signals and indicators.
+#' 
+#'  To analyze or debug signal generation process.  
 #'
 #'@export
 Signals <- function
 (
-  strategy,
-  pars,
-  granular=F, # increase granularity of signals, costly operation
-  sim.gaps=T,
-  pos=T # output a position vector (TRUE) or processed signals?
+  lind <- lapply(ls_indicators(), function(x) calc(get(x))$data)
+  mapply(function(DT, new.name) setnames(DT, names(DT), c("Instrument", "Date", new.name))
+         , DT= lind, new.name=ls_indicators()
+         , SIMPLIFY = FALSE)
+  
+  ls_signals()
+  
 ){
-  # TODO: weekend signals - they currently get erased with Align to market prices
-  # returns no NAs, range within indicator availability
-
-  if(is.character(strategy))
-    strategy <- getStrategy(strategy)
-  sigFUN <- strategy$signals[['signal']]$name
-  sig <- do.call(sigFUN, as.list(pars))
-#   if(!is.xts(sig))
-#     stop("Output from signal function is NULL")
   
-  el=sig$el
-  xl=sig$xl
-  es=sig$es
-  xs=sig$xs
-  l=sig$l
-  s=sig$s
-  is.raw=ifelse(is.null(sig$is.raw),F,sig$is.raw)
-  
-  if(is.raw) {
-    xl <- ExRem(xl, el)
-    el <- ExRem(el,(xl|es))
-    xs <- ExRem(xs,es)
-    es <- ExRem(es,(xs|el))
-  }
-  
-  if(!pos){
-    el <- diff(l)>0
-    xl <- diff(l)<0
-    es <- diff(s)>0
-    xs <- diff(s)<0
-    sig <- list(el=el,xl=xl,es=es,xs=xs, l=l, s=s)
-    names(out) <- c("el","xl","es","xs","l","s")
-
-    for(i in 1:length(sig)) {
-      colnames(sig[[i]]) <- symbols
-    }
-  } else {
-    if(is.null(l) & is.null(s))
-      sig.pos <- Fill(el,xl|es)-Fill(es,xs|el)
-    if(!is.null(l) & !is.null(s))
-      sig.pos <- l - s
-    sig.pos <- lag.xts(sig.pos, na.pad=T) # because signal predicts forward position (timestamp confusion) 
-    sig.pos[1,] <- 0
-    colnames(sig.pos) <- symbols
-  }
-  
-  if(granular) {
-    # increase granularity of positions, if pricing more frequent
-    # case:
-    # sig price  ->  sig price -> pos price
-    #  1    P         1    P       0    P
-    #       P         1    P       1    P #we have more data for pos*ret
-    #  0    P         0    P       1    P
-    sig.pos <- Align(sig.pos, to=market$prices,pad=na.locf)
-  }
-  
-  if(sim.gaps & market$has.NAs) {
-    # simulate effect of illiquid market (NAs)
-    # delay execution, as it is impossible to execute on market gap 
-    # case:
-    # sig price  ->  sig price -> pos price
-    #  1    P         1    P       0    P
-    #  0   NA         1   NA       1   NA   #unsuccessful fill of signal
-    #  0    P         0    P       1    P   #correctly, still in market
-    #  0    P         0    P       0    P
-    sig.pos <- sig.pos * market$prices / market$prices # sig now contains NAs
-    sig.pos <- na.locf(sig.pos,na.rm=F) #postpone execution due to illiquid market
-  }
-  sig$pos <- sig.pos
-  
-  return(sig)
 }
+
+# #'Generate signals
+# #'
+# #'@export
+# Signals <- function
+# (
+#   strategy,
+#   pars,
+#   granular=F, # increase granularity of signals, costly operation
+#   sim.gaps=T,
+#   pos=T # output a position vector (TRUE) or processed signals?
+# ){
+#   # TODO: weekend signals - they currently get erased with Align to market prices
+#   # returns no NAs, range within indicator availability
+# 
+#   if(is.character(strategy))
+#     strategy <- getStrategy(strategy)
+#   sigFUN <- strategy$signals[['signal']]$name
+#   sig <- do.call(sigFUN, as.list(pars))
+# #   if(!is.xts(sig))
+# #     stop("Output from signal function is NULL")
+#   
+#   el=sig$el
+#   xl=sig$xl
+#   es=sig$es
+#   xs=sig$xs
+#   l=sig$l
+#   s=sig$s
+#   is.raw=ifelse(is.null(sig$is.raw),F,sig$is.raw)
+#   
+#   if(is.raw) {
+#     xl <- ExRem(xl, el)
+#     el <- ExRem(el,(xl|es))
+#     xs <- ExRem(xs,es)
+#     es <- ExRem(es,(xs|el))
+#   }
+#   
+#   if(!pos){
+#     el <- diff(l)>0
+#     xl <- diff(l)<0
+#     es <- diff(s)>0
+#     xs <- diff(s)<0
+#     sig <- list(el=el,xl=xl,es=es,xs=xs, l=l, s=s)
+#     names(out) <- c("el","xl","es","xs","l","s")
+# 
+#     for(i in 1:length(sig)) {
+#       colnames(sig[[i]]) <- symbols
+#     }
+#   } else {
+#     if(is.null(l) & is.null(s))
+#       sig.pos <- Fill(el,xl|es)-Fill(es,xs|el)
+#     if(!is.null(l) & !is.null(s))
+#       sig.pos <- l - s
+#     sig.pos <- lag.xts(sig.pos, na.pad=T) # because signal predicts forward position (timestamp confusion) 
+#     sig.pos[1,] <- 0
+#     colnames(sig.pos) <- symbols
+#   }
+#   
+#   if(granular) {
+#     # increase granularity of positions, if pricing more frequent
+#     # case:
+#     # sig price  ->  sig price -> pos price
+#     #  1    P         1    P       0    P
+#     #       P         1    P       1    P #we have more data for pos*ret
+#     #  0    P         0    P       1    P
+#     sig.pos <- Align(sig.pos, to=market$prices,pad=na.locf)
+#   }
+#   
+#   if(sim.gaps & market$has.NAs) {
+#     # simulate effect of illiquid market (NAs)
+#     # delay execution, as it is impossible to execute on market gap 
+#     # case:
+#     # sig price  ->  sig price -> pos price
+#     #  1    P         1    P       0    P
+#     #  0   NA         1   NA       1   NA   #unsuccessful fill of signal
+#     #  0    P         0    P       1    P   #correctly, still in market
+#     #  0    P         0    P       0    P
+#     sig.pos <- sig.pos * market$prices / market$prices # sig now contains NAs
+#     sig.pos <- na.locf(sig.pos,na.rm=F) #postpone execution due to illiquid market
+#   }
+#   sig$pos <- sig.pos
+#   
+#   return(sig)
+# }
 
 #' Some Title
 #' 

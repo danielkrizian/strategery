@@ -1,4 +1,15 @@
 
+root.portfolio <- function(date, instruments, data.frame=NULL) {
+  if(is.null(data.frame))
+  return(data.table(Date=date, Instrument=instruments, key=c("Instrument","Date")))
+  else
+    data <- as.data.table(data.frame)
+    portfolio <- root.portfolio(date=min(data$Date) - 1
+                                , instruments=unique(data$Instrument))
+  return(portfolio)
+}
+
+
 #' Some Title
 #' 
 #' @export

@@ -1,41 +1,72 @@
 require(strategery)
+require(quantstrat)
 require(data.table)
 require(xts)
-data(SPX)
-
-options(datatable.print.topn=10)
-
-#options
-options(key=c("Instrument","idate"))
-options(BuyPrice=data.table(Instrument="SPX"
-                            , idate=as.IDate(index(SPX))
-                            , BuyPrice=as.vector(SPX$SPX.Close)
-                            , key=c("Instrument","idate")))
-options(BuyPrice=quote(Close), SellPrice=quote(Open), CoverPrice=quote(Open), ShortPrice=quote(Open))
-options(TradeDelays=list(Buy=1,Sell=1,Short=1,Cover=1))
 
 
-#pre-processing
+# have instrument data loaded
+source("R\\use\\etl.instruments.R")
 
-showInstruments()
-#options(instruments=c("SPY", "AAPL"))
+# select universe
+symbols <- "SPX"
+Universe(symbols)
 
-#Buy & Hold
-Buy <- quote(TRUE)
-Sell <- quote(FALSE)
+cal <- time.frame(symbols, bds=TRUE) # trading days data
 
-#TAA
-Buy  <- data.table(Instrument="SPX",idate=as.IDate("1928-01-04"), Buy=1, key=getOption("key"))
-Sell <- quote(FALSE)
+TurnOfMonth <- function(x, last=1, first=3) {
+  eom <-endpoints(x, on="months") # end of month
+  tom <- sort(as.vector(outer(eom, (-last+1):(first),"+"))) # shift backward&forward
+  tom <- tom[tom > 0 & tom <= length(x)] # eliminate values outside range
+  1:length(x) %in% tom
+}
 
-#Simple MA crossover
+debugonce(`==.indicator`)
+debugonce(print.indicator)
 
-Buy <- quote(Cross(Close, SMA(Close,n)))
-Sell <- quote(Cross(SMA(Close,n), Close))
+TOM <- indicator( TurnOfMonth(Date, 1, 3), data=cal)
 
-n<-5
-AddColumn(quote(SMA(Close,n)), paste("SMA",n))
+mom <- indicator( momentum(Close, n), data=OHLCV)
+cal[,TOM:=TurnOfMonth(Date, 1,3)]
+
+nMom <- 20
+momentum <- quote( mom(Close, n=nMom) > 0)
+
+AddIndicator(momentum, "momentum")
+
+class(calc(TOM))
+TOM==TRUE
+Buy <- (TOM==TRUE) %AND% (momentum > 0) # allow for 
+Sell <- quote(!Buy)
 
 Backtest()
+saveStrategy()
 
+newStrategy("fomc")
+Universe( c("SPX") )
 
+data(fomc)
+# data prior 1986 unverified
+fomc <- data.table(Date=as.IDate(fomc[as.Date(fomc$x) > "1986-01-01",])) 
+setkey(fomc,"Date")
+cal <- Calendar.Trading(exchange="NYSE")
+setkey(cal,"Date")
+cal[,isFOMC:=FALSE]
+cal[fomc,isFOMC:=TRUE]
+cal[, to.FOMC:=BarsTo(isFOMC)]
+
+SymbolExchange <- data.table(Instrument=c("SPX"),exchange="NYSE", key="exchange")
+setkey(cal,"exchange")
+FOMC <- cal[SymbolExchange, allow.cartesian=TRUE
+           ][isBizday==TRUE][,to.FOMC:=anticipate(to.FOMC,1)][,list(Instrument, Date, to.FOMC)]
+
+AddIndicator(FOMC)
+
+nMom <- 20
+momentum <- quote( mom(Close, n=nMom) > 0)
+
+AddIndicator(momentum, "momentum")
+Buy <- quote( (to.FOMC<2) & momentum )
+Sell <- quote(!Buy)
+
+Backtest()
+saveStrategy()

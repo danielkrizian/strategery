@@ -2,7 +2,7 @@
 \alias{Backtest}
 \title{blabla}
 \usage{
-  Backtest()
+  Backtest(view = TRUE)
 }
 \description{
   blabla
