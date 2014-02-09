@@ -1,14 +1,3 @@
-#' Some Title
-#' @export
-window.Date <- function(x,start=NULL,end=NULL) {
-  # method for class Date. See window.zoo
-  x <- as.Date(x)
-  if(!is.null(start))
-    x <- x[ x>=as.Date(start)]
-  if(!is.null(end))  
-    x <- x[ x<=as.Date(end) ]
-  return(x)
-}
 
 #' Some Title
 #' @export

@@ -450,14 +450,6 @@ chart.RollingStyle <-
 #' Measurement Journal of Portfolio Management, 1992, 7-19.  See \url{
 #' http://www.stanford.edu/~wfsharpe/art/sa/sa.htm}
 #' @keywords ts multivariate hplot
-#' @examples
-#' 
-#' data(edhec)
-#' data(managers)
-#' style.fit(as.data.frame(managers[97:132,2,drop=FALSE]),as.data.frame(edhec[85:120,]), method="constrained", leverage=FALSE)
-#' chart.Style(managers[97:132,2,drop=FALSE],edhec[85:120,], method="constrained", leverage=FALSE, unstack=TRUE, las=3)
-#' chart.RollingStyle(managers[,2,drop=FALSE],edhec[,1:11], method="constrained", leverage=FALSE, width=36, cex.legend = .7, colorset=rainbow12equal, las=1)
-#' 
 chart.Style <-
   function (R.fund, R.style, method = c("constrained", "unconstrained", "normalized"), leverage = FALSE, main = NULL, ylim = NULL, unstacked=TRUE, ...)
   { # @author Peter Carl

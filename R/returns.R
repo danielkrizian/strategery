@@ -1,6 +1,5 @@
 # #' Constructor for class 'returns' - time series of returns
 # #' 
-# #' @export
 # returns <- function(x, ...) {
 #   UseMethod("returns",x)
 # }
@@ -16,7 +15,6 @@
 # #' @param interval character vector as one of c("monthly", "regular","MTD", NA, ...).
 # #' Sets the interval property of returns object. If missing, the function will attempt
 # #' to discern the interval from the x object.
-# #' @export
 # as.returns.default <- function(x, interval=c("days","weeks","months","years")) {
 #   
 #   columnsInput <- c("Name", "Date", "Value")
@@ -62,6 +60,8 @@
 
 #' Convert (irregular) returns to regular intervals of chosen periodicity
 #' 
+#' Some description
+#' 
 #' @param x A data.table with columns Instrument, Date, Return
 #' @param fill How many missing bars to fill/roll backwards and forwards?
 #'             If not FALSE, a vector of length 2 - fill=c(backwards, forwards)
@@ -74,6 +74,7 @@
 #'                 
 #' Main use is to convert from MTD type returns to periodic returns
 #' Create Price index
+#' 
 #' Add Base Index/Price (for MTD version)
 #' Make daily timeframe
 #' Compress timeframe to lower interval

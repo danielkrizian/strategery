@@ -19,12 +19,6 @@ summary.returns <- function(R, stats, as.rows=T, ...) {
   ans
 }
 
-#' Look up statistic function
-#' 
-#' Search for statistic function by function name (incl. "compute." variant) 
-#' or by name defined in statistics list
-#' returns function
-#' @export
 stat.fun <- function(name) {
   l <- statistics
   label <- ifelse(is.null(l[[name]]), name, l[[name]][1])

@@ -119,10 +119,7 @@ to.interval.xts <- function(
 # a <- set.time.frame(x,interval="weeks")
 # CJ()
 
-#' Some Title
-#' 
-#' method for class Date. See window.zoo
-#' @export
+
 window.Date <- function(x,start=NULL,end=NULL) {
   x <- as.Date(x)
   if(!is.null(start))
@@ -348,24 +345,10 @@ IDateYearMonthDay <- function(x) {
   }
 }
 
-# #' Is the date the end of the month?
-# #' @param appx.days How many days to tolerate before from last day of the month?
-# #' Useful when data is collected for the last business day of the month. 
-# #' Recommended maximum of 6 days.
-# #' @export
-# is.EOM <- function(x, appx.days=0) {
-#   #require(lubridate)
-#   #ceiling_date(as.POSIXct(data$Date), "month") - days(1) # takes too long
-#   require(timeDate)
-#   #x<- data$Date
-#     x<- as.Date(timeLastDayInMonth(x)) - as.Date(x) <= appx.days
-#   return(x)
-# }
-
 #' End of the Month
 #' 
-#' Value is logical, indicating whether the Date supplied is at the end of the 
-#' month.
+#' Value is logical, indicating whether the Date supplied is at the end of the month.
+#' @param x dates
 #' @export
 is.EOM <- function(x) {
   # TODO Alternative solution xts::lastof(year,month). Compare speeds
@@ -375,8 +358,8 @@ is.EOM <- function(x) {
 #' End of the Week
 #' 
 #' Value is logical, indicating whether the Date supplied is at the end of the week
-#' @param weekend Treat Saturday and Sunday as days ending the week?
-#' If FALSE, week ends on Friday
+#' @param x Treat Saturday and Sunday as days ending the week? If FALSE, week ends on Friday
+#' @param weekend Treat Saturday and Sunday as days ending the week? If FALSE, week ends on Friday
 #' @export
 is.EOW <- function(x, weekend=T) {
   wd <- 6 #Friday 

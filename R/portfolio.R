@@ -1,4 +1,66 @@
 
+#' @include assets.R
+Portfolio <- setRefClass("Portfolio"
+                         , contains="Assets"
+                         , fields = list(txns="data.table"
+                                         , exposures = "data.table" 
+                         )
+                         , methods = list(
+                           
+                           initialize=function(...)  {
+                             assign('.performance',numeric(), .self)
+                             .self$initFields(...)
+                           },
+                           
+                           position = function(instrument=NULL, date=NULL){
+                             if(!length(assets))
+                               return(0)
+                             last(assets[Instrument==instrument,]$Pos)
+                           }, 
+                           
+                           addTxns = function(x){
+                             # Update portfolio positions with new transactions
+                             if(is.null(txns)) txns <<-x else {
+                               txns <<- .rbind.data.table(txns, x, use.names=TRUE)
+                               setkey(txns, Instrument, Date)
+                             }
+                             x[,Pos:=position(Instrument) + cumsum(TxnQty), by=Instrument]
+                             
+                             if(is.null(assets))
+                               assets <<- x[,list(Instrument, Date, Pos)]
+                             else
+                               assets <<- .rbind.data.table(assets, x[,list(Instrument, Date, Pos)], use.names=TRUE)
+                             setkey(assets, Instrument, Date)
+                           },
+                           
+                           calcPL = function(market=OHLCV){
+                             
+                             #' Calculate portfolio profit & loss for each period
+                             #' 
+                             #' Gross.Trading.PL=Pos.Value- LagValue - Txn.Value
+                             #' Period.Unrealized.PL = Gross.Trading.PL - Gross.Txn.Realized.PL
+                             
+                             
+                             market <- market[,list(Instrument, Date, Close)]
+                             setnames(market,"Close","Price")
+                             start <- min(assets[,.SD[1] ,by=Instrument]$Date) # start from the first available position, not from the first market price
+                             marked.portfolio <- assets[market[Date>=start], roll=TRUE][, Value:=Pos * Price]
+                             # handle missing TxnValue - fill zeroes alternative
+                             cols <- c("Instrument", "Date", "Pos", "Price", "Value")
+                             valued <- marked.portfolio[, cols, with=FALSE]
+                             with.txns <- valued[txns][, c(cols, "TxnValue"), with=FALSE]
+                             no.txns <- valued[!txns][,TxnValue:=0]
+                             valued <-  .rbind.data.table(with.txns, no.txns)
+                             setkey(valued, Instrument, Date)
+                             # handle missing (NA) TxnValue - is.na() alternative
+                             #   out <- txns[,list(Instrument,Date,TxnValue)][marked.portfolio]
+                             valued[, Prev.Value:=delay(Value, pad=0), by=Instrument]
+                             assets <<- valued[, PL:= Value - Prev.Value - TxnValue]
+                             return(assets)
+                           })
+)
+
+
 #' constructor for creating an portfolio object.
 #' portfolio object represents implementation of a strategy, and hence have the same name.
 portfolio <- function(data) {
@@ -71,61 +133,6 @@ portfolio.PL <- function(portfolio, txns, market=OHLCV){
   return(valued)
 }
 
-
-# TODO: temporary as.portfolio uses falcon-specific load.portfolio
-as.portfolio <- function(x){
-  return(load.portfolio(x))
-}
-
-#' Load portfolio data for a pre-defined instrument object
-#' 
-#' src Should be defined in the GlobalEnv. 
-#' Alternatively, define it in each instrument
-#' @export
-load.portfolio <- function(id
-                      , interval=c("days","weeks","months")) {
-  
-  interval <- match.arg(interval, c("days","weeks","months"))
-  if(!attr(src,"connected"))
-    src <- connect(src)
-  
-  if(is.character(id) || is.double(id))
-    instr <- try(getInstrument(id), silent=TRUE)
-  if(!inherits(instr,"instrument") || !inherits(instr,"portfolio"))
-    stop("Portfolio doesn't exist.")
-  
-  id <- instr$identifiers$Falcon
-  
-  if(grepl("FalconDB", attr(src,"connection.string"))) {
-    historical <- TRUE
-    sql <- paste("SET NOCOUNT ON; 
-                   DECLARE @instruments AS IntList;
-                   INSERT INTO @instruments (Value)
-                   VALUES(",
-                 id,");
-                   EXEC getPerformance_Portfolio 
-                   @ids=@instruments, 
-                   @drillDown=2,
-                   @inclProxies=1,
-                   @inclRedeemed=",paste(as.integer(historical)),sep="")
-    data <- as.data.table(sqlQuery(src, sql))
-    
-    #two parts, because database stores data in two unioned tables - Price and Return  
-    part.prices <- as.prices(data[is.na(Interval),])
-    part.returns <- as.prices(as.returns(data[!is.na(Interval) & ProxyID!=10,]))
-    
-    prices <- rbindlist(list(part.prices, part.returns))
-    
-    part.prices <- as.returns(part.prices, interval=interval)
-    part.returns <- as.returns(part.returns, interval=interval)
-    
-    ret <- as.returns(rbindlist(list(part.prices, part.returns)))
-
-  }
-  instrument_attr(instr$primary_id, "returns", ret)
-  instrument_attr(instr$primary_id, "prices", prices)
-  return(list(returns=ret, prices=prices))
-}
 
 mtm <- function(portfolio, txns, market=OHLCV) {
   txns[market]

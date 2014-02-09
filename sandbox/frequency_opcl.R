@@ -1,12 +1,10 @@
-#' blabla
-#' 
 #' Exchange Open and close times
 #' This should be ticker-specific
 #' TODO: Currently Package global variable. Rework to be ticker/exchange specific.
 op.time <- 090000L
 cl.time <- 170000L
 
-#' blabla
+#' Convert xts to data.table
 #' 
 #' Exchange Open and close times
 #' This should be ticker-specific

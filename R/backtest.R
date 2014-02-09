@@ -1,6 +1,6 @@
 
 
-#' blabla
+#' Backtest
 #' 
 #' @export
 Backtest <- function(...) {

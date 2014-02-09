@@ -18,5 +18,3 @@ performance <- function(x) {
   Return <- c("Performance", "RoR","")
   class(out) <- c("performance", class(out))
 }
-grep("ret",c("ret")
-recognize. <- function

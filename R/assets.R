@@ -1,6 +1,4 @@
 
-##### ASSETS #######
-
 Assets <- setRefClass("Assets"
                       , fields = list(name="character"
                                       , assets = "data.table"
@@ -71,103 +69,7 @@ Assets <- setRefClass("Assets"
                           performance
                         })
 )
-##### PORTFOLIO #######
 
-Portfolio <- setRefClass("Portfolio"
-                         , contains="Assets"
-                         , fields = list(txns="data.table"
-                                         , exposures = "data.table" 
-                         )
-                         , methods = list(
-                           
-                           initialize=function(...)  {
-                             assign('.performance',numeric(), .self)
-                             .self$initFields(...)
-                           },
-                           
-                           position = function(instrument=NULL, date=NULL){
-                             if(!length(assets))
-                               return(0)
-                             last(assets[Instrument==instrument,]$Pos)
-                           }, 
-                           
-                           addTxns = function(x){
-                             # Update portfolio positions with new transactions
-                             if(is.null(txns)) txns <<-x else {
-                               txns <<- .rbind.data.table(txns, x, use.names=TRUE)
-                               setkey(txns, Instrument, Date)
-                             }
-                             x[,Pos:=position(Instrument) + cumsum(TxnQty), by=Instrument]
-                             
-                             if(is.null(assets))
-                               assets <<- x[,list(Instrument, Date, Pos)]
-                             else
-                               assets <<- .rbind.data.table(assets, x[,list(Instrument, Date, Pos)], use.names=TRUE)
-                             setkey(assets, Instrument, Date)
-                           },
-                           
-                           calcPL = function(market=OHLCV){
-                             
-                             #' Calculate portfolio profit & loss for each period
-                             #' 
-                             #' Gross.Trading.PL=Pos.Value- LagValue - Txn.Value
-                             #' Period.Unrealized.PL = Gross.Trading.PL - Gross.Txn.Realized.PL
-                             
-                             
-                             market <- market[,list(Instrument, Date, Close)]
-                             setnames(market,"Close","Price")
-                             start <- min(assets[,.SD[1] ,by=Instrument]$Date) # start from the first available position, not from the first market price
-                             marked.portfolio <- assets[market[Date>=start], roll=TRUE][, Value:=Pos * Price]
-                             # handle missing TxnValue - fill zeroes alternative
-                             cols <- c("Instrument", "Date", "Pos", "Price", "Value")
-                             valued <- marked.portfolio[, cols, with=FALSE]
-                             with.txns <- valued[txns][, c(cols, "TxnValue"), with=FALSE]
-                             no.txns <- valued[!txns][,TxnValue:=0]
-                             valued <-  .rbind.data.table(with.txns, no.txns)
-                             setkey(valued, Instrument, Date)
-                             # handle missing (NA) TxnValue - is.na() alternative
-                             #   out <- txns[,list(Instrument,Date,TxnValue)][marked.portfolio]
-                             valued[, Prev.Value:=delay(Value, pad=0), by=Instrument]
-                             assets <<- valued[, PL:= Value - Prev.Value - TxnValue]
-                             return(assets)
-                           })
-)
-
-##### ACCOUNT #######
-
-Account <- setRefClass("Account"
-                       , contains="Portfolio"
-                       , fields = list(entries="data.table"
-                                       ,portfolios=function(l) {
-                                         # list of portfolios
-                                         if(missing(l)) return(invisible(assets))
-                                         else {
-                                           if(length(l)==1) {
-                                             assets <<- l[[1]]$assets
-                                             txns <<- l[[1]]$txns
-                                           } else {
-                                             pool.Portfolio <- function(x,y) {}
-                                             assets <<- pool.Portfolio(NULL,NULL) # stump
-                                           }
-                                         }
-                                       }
-                                       ,benchmarks="data.table")
-                       # Deposits + Withdrawals + Realized PL + Unrealized PL + Interest Income
-                       , methods = list(
-                         
-                         initialize=function(...)  {
-                           assign('.performance',numeric(), .self)
-                           .self$initFields(...)
-                         },
-                         
-                         deposit=function(amount, date) {
-                           
-                         },
-                         
-                         withdraw=function(amount, date) {
-                           
-                         })
-)
 
 ##### EXPERIMENTAL #####
 

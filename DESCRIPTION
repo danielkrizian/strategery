@@ -31,7 +31,23 @@ Depends:
     gridBase,
     xtsExtra
 Collate:
+    'assets.R'
+    'portfolio.R'
+    'account.R'
     'backtest.R'
     'data.R'
     'strategy.R'
+    'analysis.R'
+    'indicator.R'
+    'metrics.R'
+    'parameter.R'
+    'performance.R'
+    'price.R'
+    'returns.R'
+    'rule.R'
+    'signal.R'
+    'size.R'
+    'style.R'
+    'time.series.R'
+    'util.R'
 Repository: GitHub <github.com/danielkrizian/strategery> ; CRAN in the future

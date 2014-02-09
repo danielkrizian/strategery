@@ -1,10 +1,10 @@
 \name{Backtest}
 \alias{Backtest}
-\title{blabla}
+\title{Backtest}
 \usage{
-  Backtest(view = TRUE)
+  Backtest(...)
 }
 \description{
-  blabla
+  Backtest
 }
 

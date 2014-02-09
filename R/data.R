@@ -158,14 +158,6 @@ as.data.table.xts <- function(x){
   return(DT)
 }
 
-#' blabla
-#' 
-#' Exchange Open and close times
-#' This should be ticker-specific
-#' TODO: Currently Package global variable. Rework to be ticker/exchange specific.
-#' 
-#' @param x An xts object with OHLC-like structure (quantmod::is.OHLC(x) == TRUE) 
-#' @export
 # as.assets <- function(x) {
 #   # multi-assets
 #   
@@ -227,7 +219,7 @@ has.Return <- function (x, which = FALSE)
   else FALSE
 }
 
-#' blabla
+#' loadOHLCV
 #' 
 #' @param x An xts object with OHLC-like structure (quantmod::is.OHLC(x) == TRUE) 
 loadOHLCV <- function(file="G:\\Database\\OHLCV.rds.gz"){
@@ -309,140 +301,12 @@ connect.data.source <- function(x) {
     ans <- blpConnect()
   }
   
-  if(attr(x, "api")=="Backstop"){
-    require(SSOAP); require(XML); require(RCurl)
-    wsdl <- getURL("https://falconmm.backstopsolutions.com/backstop/services/BackstopPortfolioService_1_12?wsdl", ssl.verifypeer = FALSE)
-    doc  <- xmlInternalTreeParse(wsdl)
-    def <- processWSDL(doc)
-    nsdef = "http://backstopsolutions.com/BackstopService"
-    uid=attr(x, "uid")
-    pwd=attr(x, "pwd")
-    hdr <- function(...) XML:::newXMLNode("Header",
-                                          XML:::newXMLNode("LoginInfo", namespaceDefinitions=nsdef
-                                                           ,XML:::newXMLNode("Username",uid)
-                                                           ,XML:::newXMLNode("Password",pwd)))
-    ans <- genSOAPClientInterface(def=def, addSoapHeader=hdr)
-  }
-  
   #require(xlsx)
   
   cls <- c( class(ans) , "data.source")
-  if(!is.null(attr(ans,"connection.string")))
-    if(grepl("FalconDB",attr(ans,"connection.string")))
-      cls <- c("falcon", cls)
 
   structure(ans, connected=TRUE, class=cls)
   
-}
-
-#' Load price data
-#' 
-#' src Should be defined in the GlobalEnv. 
-#' Alternatively, define it in each instrument
-#' @export
-getPrices.falcon <- function(ids
-                   , interval=c("days","weeks","months")){
-  
-  interval <- match.arg(interval, c("days","weeks","months"))
-  if(!attr(src,"connected"))
-    src <- connect(src)
-  
-  getid <- function(i){
-    instr <- try(getInstrument(i), silent=TRUE)
-    if("instrument" %in% class(instr))
-      id <- instr$identifiers$Falcon
-    return(id)
-  }
-  ids <- sapply(ids, getid)  
-  
-  sql <- paste("SET NOCOUNT ON; 
-                 DECLARE @instruments AS IntList;
-                 INSERT INTO @instruments (Value)
-                 VALUES(",
-               paste( ids, collapse="),(")
-               ,");
-                 EXEC getPrices 
-                 @ids=@instruments")
-  ans <- as.data.table(sqlQuery(src, sql))
-
-  
-  if(length(ids)==1) {
-    instr <- getInstrument(ids)
-    instr$prices <- ans
-    assign(instr$primary_id, instr, envir = as.environment(FinancialInstrument:::.instrument))
-  }
-  return(ans)
-}
-
-load.instruments.falcon <- function(src, cur=FALSE){
-  require(FinancialInstrument)
-  require(data.table)
-  options(stringsAsFactors=FALSE)
-  
-  if(cur) {
-    # currency("LCY") # TODO "LCY" currency not in the database
-    
-    currencies <- as.data.table(sqlQuery(src, "SELECT * FROM Currency"))
-    currencies[, type:="currency"]
-    
-    setnames(currencies
-             , old=c("Code", "Name", "CurrencyID")
-             , new=c("primary_id", "description", "Falcon"))
-    currencies <- currencies[!is.na(primary_id),]
-    load.instruments(metadata=as.data.frame(currencies))
-    
-    df <- currencies
-    for (i in 1:nrow(df)) {
-      primary_id <- as.character(df$primary_id[i])
-      instr <- try(getInstrument(primary_id, silent = TRUE), 
-                   silent = TRUE)
-      args <- list()
-      arg <- as.list(df[i, ])
-      instrument_attr(primary_id, "defined.by","falcon")
-      add.identifier(primary_id, Falcon=arg$Falcon)
-    }  
-  }
-
-  metadata <- as.data.table(sqlQuery(src, "SELECT * FROM Instrument"))  
-  setkey(metadata,"Type")
-  cols <- colnames(metadata)
-  lookup <-data.table(ID=1:16
-                      , Type=c(rep("fund",6)
-                               , rep("financial.index", 10))
-                      , key="ID")
-  metadata <- lookup[metadata]
-  setkey(metadata,"InstrumentID")
-  metadata[,ID:=NULL]
-  setcolorder(metadata, cols)
-  
-  primary_id <- quote(ifelse(!is.na(Bloomberg), Bloomberg
-                             , ifelse(!is.na(ShortName), ShortName
-                                      , paste("FalconID", InstrumentID,sep=""))))
-  has.portfolio <- as.data.table(sqlQuery(src, "SELECT DISTINCT PortfolioID
-                                          FROM Portfolio"))$PortfolioID
-  metadata[, Falcon:=InstrumentID]
-  metadata[, primary_id:=eval(primary_id)]
-  metadata[, hasPortfolio:=(Falcon %in% has.portfolio)]
-  
-  for (r in 1:nrow(metadata)) {
-  i <- metadata[r,]
-  
-  identifiers <- list(Bloomberg=i$Bloomberg
-                      , Falcon=i$Falcon
-                      , Backstop=i$Backstop
-                      , FalconMonitoring=i$FalconMonitoring)
-  type <- ifelse(i$Type<=6,"fund", "financial.index")
-  instrument(primary_id=i$primary_id
-             , description=i$Name
-             , short.name=ifelse(i$ShortName=="", substr(i$Name, 1, 15),i$ShortName)
-             , currency=ifelse(i$Currency=="",currency("NA"), i$Currency)
-             , multiplier=ifelse(is.na(i$Multiplier), 1, i$Multiplier)
-             , identifiers=identifiers
-             , type=if(i$hasPortfolio) c("portfolio",type) else type
-             , defined.by="falcon"
-             , assign_i=TRUE)
-  }
-
 }
 
 #' Construct indicator class and define identifiers in the context of different data sources
@@ -532,6 +396,8 @@ financial.index <- function (primary_id, ..., currency=NA, multiplier=1
 
 # DATA TABLE --------------------------------------------------------------
 
+#' convert data.table to xts
+#' 
 #' @param x - dcast'ed data.table
 as.xts.data.table <- function(x) {
   xts(as.data.frame(x[,!"Date", with=FALSE]), order.by=as.Date(as.character(x$Date)))

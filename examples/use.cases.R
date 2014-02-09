@@ -6,7 +6,8 @@ require(xts)
 
 
 # have instrument data loaded
-source("use\\etl.instruments.R")
+source("examples\\etl.instruments.R")
+
 SPX <- OHLC(SPX)
 ohlc <- as.data.table(SPX)
 

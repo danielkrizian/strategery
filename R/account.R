@@ -1,4 +1,5 @@
 
+#' @include portfolio.R
 Account <- setRefClass("Account"
                          , contains="Portfolio"
                          , fields = list(entries="data.table"
@@ -39,4 +40,3 @@ Account <- setRefClass("Account"
 
                            })
 )
-
