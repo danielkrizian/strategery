@@ -1,21 +1,11 @@
-# sourceDir(".")
+
 require(strategery)
-require(quantstrat)
-require(data.table)
-require(xts)
 
-
-# have instrument data loaded
-source("examples\\etl.instruments.R")
-
-SPX <- OHLC(SPX)
-ohlc <- as.data.table(SPX)
+newStrategy("tfh")
 
 # select universe
 symbols <- "SPX"
 Universe(symbols) # prepare ohlc data frame
-
-
 
 cal <- time.frame(symbols, bds=TRUE) # trading days calendar
 
@@ -26,24 +16,25 @@ TurnOfMonth <- function(x, last=1, first=3, advance=2) {
   1:length(x) %in% tom
 }
 
-Close.Prices <- indicator(Close, input=OHLCV)
+nmom <- 20
+last.days <- 1
+first.days <- 3
+
+#Close.Prices <- indicator(Close, input=OHLCV)
 TOM <- indicator( TurnOfMonth(Date, last.days, first.days, advance=2), input=cal)
 mom <- indicator( momentum(Close, nmom), input=OHLCV)
 
 Long <- (mom>0) %AND% (TOM==TRUE) %position% shares(1) # %buy% equity.pct(2) 
 Neutral <- (mom<=0) %OR% (TOM!=TRUE) %position% shares(0)
-
-# Rebalance <- EOM==TRUE %rebalance% equitypct(20)
-
+# Rebalance <- EOM==TRUE %rebalance% equitypct(20) # rebalance rule: each month, rebalance to 20% equity target
 Check(plot=F, window="1980")
 
 options("warn"=-1)
-nmom <- 20
-last.days <- 1
-first.days <- 3
+
 bt <- Backtest()
 
 saveStrategy()
+
 
 newStrategy("fomc")
 symbols <- "SPX"
@@ -73,26 +64,13 @@ FomcDay <- function(x, before=2) {
   return(beforeFomc)
 }
 
-beforeFOMC <- 4
+beforeFOMC <- 2
 
 FOMC <- indicator( FomcDay(Date, before=beforeFOMC), input=cal)
 
-Long <- (FOMC==TRUE) %position% shares(1) # %buy% equity.pct(2)  #(mom>0) %AND% 
-Neutral <- (FOMC!=TRUE) %position% shares(0) #(mom<=0) %OR% 
-
-# some error (mom<=0)
-# Instrument       Date TxnQty   Price TxnValue
-# 1:        SPX 1980-02-04      1  114.37   114.37
-# 2:        SPX 1980-02-26     -1  113.98  -113.98
-# 3:        SPX 1980-05-19      1  107.67   107.67
-# 4:        SPX 1980-09-09     -1  124.07  -124.07
-# 5:        SPX 1980-09-15      1  125.67   125.67
+Long <- (FOMC==TRUE) %position% shares(1) # %buy% equity.pct(2) 
+Neutral <- (FOMC!=TRUE) %position% shares(0)
 
 Backtest()
 
-AddIndicator(momentum, "momentum")
-Buy <- quote( (to.FOMC<2) & momentum )
-Sell <- quote(!Buy)
-
-Backtest()
 saveStrategy()

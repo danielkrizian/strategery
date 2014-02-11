@@ -147,6 +147,9 @@ time.frame <- function(symbols, bds=TRUE) {
 
 
 # INSTRUMENTS -------------------------------------------------------------------
+#' Convert xts to data.table
+#'
+#' @export
 as.data.table.xts <- function(x){
   #' #http://r.789695.n4.nabble.com/data-table-and-time-series-subsetting-td4633223.html
   #' http://stackoverflow.com/questions/17345951/data-table-time-subset-vs-xts-time-subset
@@ -219,18 +222,33 @@ has.Return <- function (x, which = FALSE)
   else FALSE
 }
 
+getDatabasePath <- function(){
+  "G:\\Database\\OHLCV.rds.gz"
+}
+
 #' loadOHLCV
 #' 
 #' @param x An xts object with OHLC-like structure (quantmod::is.OHLC(x) == TRUE) 
-loadOHLCV <- function(file="G:\\Database\\OHLCV.rds.gz"){
+#' @export
+loadOHLCV <- function(file=file.path(system.file(package = "strategery"), "data", "OHLCV.rds.gz")){
   envir <- .GlobalEnv
   out <- readRDS(file)
   assign("OHLCV",out, envir=envir)
   return(out)
 }
+
+#' saveOHLCV
+#' 
+#' @param x An xts object with OHLC-like structure (quantmod::is.OHLC(x) == TRUE) 
+#' @export
 saveOHLCV <- function(file="G:\\Database\\OHLCV.rds.gz"){
   saveRDS(OHLCV, file, compress=T)
 }
+
+#' UpdateOHLCV
+#' 
+#' @param x An xts object with OHLC-like structure (quantmod::is.OHLC(x) == TRUE) 
+#' @export
 updateOHLCV <- function(x){
 
   new <- as.data.table(getSymbols("SPX", src="yahoo", from="1900-01-01", auto.assign=FALSE))
@@ -253,9 +271,16 @@ updateOHLCV <- function(x){
 Universe <- function(
   instruments #c("SPY", "AAPL")
 ){
-  # probably obsolete
-  u <- time.frame(instruments, bds=TRUE)
-  assign("R", copy(u), envir=.GlobalEnv)
+  # these three lines are temporary, until organized into database
+  if("SPX" %in% instruments) {
+    fund("SPX", currency=currency("USD"))
+    # instrument_attr("SPX",attr="OHLC",value=SPX)
+    instrument_attr("SPX",attr="exchange",value="NYSE")
+    loadOHLCV()
+  }
+  OHLCV <- OHLCV[Instrument %in% instruments]
+#   u <- time.frame(instruments, bds=TRUE)
+#   assign("R", copy(u), envir=.GlobalEnv)
 }
 
 Cl <- function(x){

@@ -42,12 +42,7 @@ Backtest <- function(...) {
     }
 
     # execution algorithm: market on close
-
-    market[,FillDate:=Date]
-    setkey(orders[,Date:=Date + 1],Instrument, Date)
-    orders.filled <- orders[market, roll=1][orders][,Price:=Close][,TxnQty:=OrderSize]
-    orders.filled <- orders.filled[!is.na()]
-    browser()
+    orders.filled <- market[,FillDate:=Date][orders[,Date:=Date + 1], roll=-Inf][,Price:=Close][,TxnQty:=OrderSize]
     orders.filled <- orders.filled[,list(Instrument, FillDate, TxnQty, Price)]
     setnames(orders.filled, "FillDate", "Date")
     setkey(orders.filled, Instrument, Date)
@@ -201,9 +196,9 @@ deconstruct_and_eval2 = function(expr, envir = parent.frame(), enclos = parent.f
     } else {
       
       # my edit to the [.data.table original
-      if(exists(as.character(m),envir=as.environment(R))) {
-        if(!is.function(eval(m, envir=as.environment(R))))
-          eval(m,envir=as.environment(R))
+      if(exists(as.character(m),envir=as.environment(.GlobalEnv))) { #was R
+        if(!is.function(eval(m, envir=as.environment(.GlobalEnv)))) #was R
+          eval(m,envir=as.environment(.GlobalEnv)) #was R
         else
           m
       }

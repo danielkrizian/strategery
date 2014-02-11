@@ -31,7 +31,7 @@ Assets <- setRefClass("Assets"
                             performance <- .performance
                           else {
                             if(inherits(.self, "Portfolio")) {
-                              if(! "PL" %in% names(assets)) assets <<- .self$calcPosPL()
+                              if(! "PL" %in% names(assets)) assets <<- .self$calcPL()
                               
                               performance <- assets[,list(PL=sum(PL), Prev.Value=sum(Prev.Value)), by=Date]
                               performance[             , Return:=0]

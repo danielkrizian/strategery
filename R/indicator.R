@@ -1,3 +1,7 @@
+#' Some text
+#' 
+#' @rdname calc
+#' @export calc
 calc <- function(x, with.name=FALSE) {
   
   if(with.name) {
@@ -5,20 +9,11 @@ calc <- function(x, with.name=FALSE) {
     NextMethod("calc",x, name=name)
   } else
     UseMethod("calc",x)
-
+  
 }
 
 #' Define indicator formula for later evaluation
 #' 
-#a <- as.list(substitute(call))
-#   .f <- substitute(call)
-#   fun <- as.character(.f)[1]
-#   params <- names(as.list(.f))[-1]
-#   params <- params[!(params %in% "")]
-#   params <- as.list(.f)[-1]
-#   as.character(params) %in% colnames(data)
-#   params <- args[!(args %in% colnames(data))]
-#   params <- lapply(ar)
 #' @export
 indicator <- function (call, input)  {
   .Data <- list()
@@ -32,6 +27,11 @@ ls_indicators <- function (envir=.GlobalEnv) {
   all[sapply(all, function(x) class(get(x))[1] == "indicator")]
 }
 
+#' @return \code{NULL}
+#'
+#' @rdname calc
+#' @method calc indicator
+#' @S3method calc indicator
 calc.indicator <- function(x, name, ...) {
   # TODO Delete setkey line if you have installed data.table rev 999 and up
   # TODO: remove 'ohlc' dependency
@@ -49,15 +49,19 @@ calc.indicator <- function(x, name, ...) {
   return(x)
 }
 
+
 dat <-  function(x, ...) {
-  UseMethod("data", x)
+  UseMethod("dat", x)
 }
 
+#' @method dat indicator
+#' @S3method dat indicator
 dat.indicator <- function(x, name) {
   calc.indicator(x, name=name)$data
 }
 
-
+#' @method Ops indicator
+#' @S3method Ops indicator
 `Ops.indicator` <- function(x, y) {
   op <- as.name(.Generic)
   sig.call <- substitute(op(x, y))
@@ -69,6 +73,8 @@ dat.indicator <- function(x, name) {
   return(signal(call = sig.call, data=sig.data))
 }
 
+#' @method print indicator
+#' @S3method print indicator
 print.indicator <- function(x, ...) {
   ind <- calc(x, with.name=FALSE)
   print(ind$data)

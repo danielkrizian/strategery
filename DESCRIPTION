@@ -2,8 +2,8 @@ Package: strategery
 Type: Package
 Title: Quant Strategy Specification, Backtesting, Optimization And Statistical
     Analysis Workflow
-Version: 2.0
-Date: 2013-09-22
+Version: 0.1
+Date: 2014-02-11
 Author: Daniel Krizian <daniel.krizian@gmail.com>
 Maintainer: Daniel Krizian <daniel.krizian@gmail.com>
 Description: System for testing strategies. The goal is to combine simple
@@ -29,7 +29,10 @@ Depends:
     grid,
     gridExtra,
     gridBase,
-    xtsExtra
+    xtsExtra,
+    ggplot2,
+    ggthemes,
+    scales
 Collate:
     'assets.R'
     'portfolio.R'

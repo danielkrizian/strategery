@@ -1,10 +1,13 @@
 # Express size as shares, equitypct. 
 # Attach these objects to the rule object with %someaction% operator
 
+#' Position
+#' 
 #' Difference %position% vs. %rebalance%: rebalance doesn't act if the zero position 
 #' would have been crossed by the transaction or if the last position was zero. 
 #' `position` is agnostic to switching sides among long/neutral/short. Rebalance isn't.
 #' `allocation` is synonym to `position`
+#' @export
 `%position%` <- function(signal, size) {
   structure(.Data=list(signal=signal, size=size, action="enter"), class="rule")
 }
@@ -25,6 +28,7 @@
 # PercentOfPosition (=3) - size expressed as percent of currently open position (for SCALING IN and SCALING OUT ONLY)
 # NoChange (=0) - don't change previously set size for given bar
 
+#' @export
 shares <- function(qty) {
   structure(.Data=qty, class=c("share","position_size"))
 }

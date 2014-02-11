@@ -16,6 +16,8 @@ print.rule <- function(rule) {
   print(eval.rule(rule)$portfolio)
 }
 
-data.rule <- function(rule) {
+#' @method dat rule
+#' @S3method dat rule
+dat.rule <- function(rule) {
   eval.rule(rule)$portfolio
 }

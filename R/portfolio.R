@@ -40,7 +40,7 @@ Portfolio <- setRefClass("Portfolio"
                              #' Gross.Trading.PL=Pos.Value- LagValue - Txn.Value
                              #' Period.Unrealized.PL = Gross.Trading.PL - Gross.Txn.Realized.PL
                              
-                             
+#                              browser()
                              market <- market[,list(Instrument, Date, Close)]
                              setnames(market,"Close","Price")
                              start <- min(assets[,.SD[1] ,by=Instrument]$Date) # start from the first available position, not from the first market price
