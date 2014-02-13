@@ -42,7 +42,15 @@ Backtest <- function(...) {
     }
 
     # execution algorithm: market on close
-    orders.filled <- market[,FillDate:=Date][orders[,Date:=Date + 1], roll=-Inf][,Price:=Close][,TxnQty:=OrderSize]
+    # take the price on a date following immediately the order date 
+    # (example: roll backwards the price from Monday if the order date is Saturday.
+    # fillDate and fill price will be Monday)
+    orders.filled <- market[,FillDate:=Date][orders[,Date:=Date + 1], roll=-Inf][
+      ,Price:=Close][
+        ,TxnQty:=OrderSize]
+    # remove orders yet to be filled in the future (having FillDate==NA)
+    orders.filled <- orders.filled[!is.na(FillDate)]
+    
     orders.filled <- orders.filled[,list(Instrument, FillDate, TxnQty, Price)]
     setnames(orders.filled, "FillDate", "Date")
     setkey(orders.filled, Instrument, Date)
