@@ -1,6 +1,8 @@
-
 require(strategery)
 
+# This strategy goes long the S&P 500 index around the turn of each month 
+# (last trading day and first three trading days). 
+# Momentum filter applied, i.e. price must be greater than 20 days ago.
 newStrategy("tfh")
 
 # select universe
