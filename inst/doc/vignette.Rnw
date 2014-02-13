@@ -1,0 +1,9 @@
+\documentclass{article}
+
+\begin{document}
+
+Workflow vs. ad-hoc script:
+   isolate bugs. Avoid trading on erroneous signals
+
+
+\end{document}
