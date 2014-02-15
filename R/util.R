@@ -475,6 +475,10 @@ p <- function (obj) {
   out
 }
 
+#' Source all R files in a given folder
+#'
+#' Credits: Yang Feng's Blog (http://yangfeng.wordpress.com/2009/10/19/how-to-source-all-the-r-files-in-a-folder/)
+#' @export
 sourceDir <- function(path, trace = TRUE, ...) {
   for (nm in list.files(path, pattern = "\\.[RrSsQq]$")) {
     if(trace) cat(nm,":")

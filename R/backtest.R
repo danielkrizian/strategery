@@ -10,7 +10,7 @@ Backtest <- function(...) {
   
 #   applyPositionSignals <- function(portfolio, rules) {return(orders)}
 #   applyOrderSignals <- function(portfolio, rules) {return(orders)}
-  btportfolio <- Portfolio$new() # otherwise initial portfolio object could be passed in via dots 
+  btportfolio <- new("Portfolio") # otherwise initial portfolio object could be passed in via dots 
   mportfolio <- NULL
   for(r in ls_rules()) {
       p <- eval.rule(r)$portfolio
@@ -65,11 +65,10 @@ Backtest <- function(...) {
   btportfolio$calcPL(market=OHLCV) #market=ohlc
   
 
-  a <- Account$new(portfolios=list(btportfolio))
+  a <- new("Account",portfolios=list(btportfolio))
   summary <- list()
   summary$returns <- summary(a$returns())
   cat(print(summary$returns),"test")
-  
   plot(a$performance())
   return(list(account=a, summary=summary))
 }
