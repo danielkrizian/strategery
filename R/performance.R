@@ -298,15 +298,29 @@ monthly.returns <- function(x){
 }
 
 
-
-summary.returns <- function(x) {
+#' Calculate summary statistics for returns
+#' 
+#' @param byIns a logical value. Calculate for each Instrument separately?
+#' @param byPer Either logical (TRUE is equivalent to "years") or character, one of 
+#' c("months","years")
+#' @param weights a numeric vector or data.table of portfolio weights. If provided,
+#' portfolio returns are calculated.
+summary.returns <- function(x, byIns=ifelse(is.null(weights),T,F), byPer=F, weights=NULL) {
   
-#   Rf.bench attr()
+
+  if(!is.na(match(byPer, c("months", "years", T))))
+     return(summary.returns.by.period(x=x, byIns=byIns, weights=weights))
+     
   ann=252
   compound=T
+
+  by= if(byIns) "Instrument" else NULL
+  
+  
   x[, Equity:= cumprod(1+Return), by=Instrument]
   x[, Drawdown:= Equity / cummax(Equity) - 1, by=Instrument]
   drawdowns <- x[, summary.drawdowns(Drawdown, Date), by=Instrument]
+  
   return(x[,list(
     "CAGR"=annualized(Return, ann=ann, compound=compound)
     , "Total Return"=cumulative(Return, compound=compound)
@@ -319,7 +333,11 @@ summary.returns <- function(x) {
     , "Average Drawdown"= mean(drawdowns$Depth) #avgdd(Return)
     , "Average Drawdown Length" = mean(drawdowns$Length)
                  )
-           , by=Instrument])
+           , by=by])
+}
+
+summary.returns.by.period <- function(x, byIns=ifelse(is.null(weights),T,F), weights=NULL) {
+  
 }
 
 plot.returns <- function(x) {
@@ -386,21 +404,4 @@ summary.drawdowns <- function(drawdowns, dates=NULL) {
 summary.trades <- function(trades) {
   
 }
-
-
-# VALIDITY CHECKS FOR METRICS ---------------------------------------------
-
-# Sharpe
-# at least 36 months of data
-
-# Profit Factor
-# > 2
-# Examining the 2:1 profit/loss requirement, you get the sense that strategies that feature a mountain of small bites are much more succeptible to changes in the market.
-# For instance, if you have a strategy that states "90% of the time, with these conditions, it will reach 5 ticks before it reaches 25 ticks against."
-# In theory, with commission and burden, at a 5/25 (or 1/5 PL ratio), you'd need to win about 6/7 or 86% of the time.
-# When looking at this closer, if you've observed a 90% win rate and you're averaging a certain yield/time, it only takes a couple of losers in a row to REALLY kick you in the crotch. Essentially, you have to drop from 90% to 86% and now you're under water. Not only that, it only takes 2 or 3 consecutive losers to put you in the hospital.
-# Conversely, a strategy that features a 2:1 PL ratio, and has a 50% win rate, it takes several losers in a row to create a knockout punch, which usually gives the trader enough time to pause, adjust, etc.
-
-# RINA: 
-# "good" RINA index is one over 100 and an acceptible ratio is between 30-100 and anything less than 30 (even negative) is not so good.
 
