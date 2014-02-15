@@ -63,6 +63,7 @@ mar <- function(R, ann=252) {
 
 ####### DRAWDOWNS ######
 
+# Calculate drawdowns
 dd <- function(x) {
   e <- cumprod(1+x)
   e / cummax(e) - 1
@@ -73,6 +74,7 @@ maxdd <- function(x) {
   max(abs(dd))
 }
 
+# Average drawdown length
 avgdd <- function(x) {
   dd <- dd(x)
   prevdd <- c(0, dd[-length(dd)])
@@ -90,41 +92,3 @@ avgdd <- function(x) {
 
   abs(mean(apply( cbind(ddstarts, ddends), 1, function(x){ min( dd[ x[1]:x[2] ]) } )))
 }
-
-summary.drawdowns <- function(drawdowns, dates=NULL) {
-  
-  prevdd <- c(0, drawdowns[-length(drawdowns)])
-  
-  ddstarts = which( drawdowns != 0 & prevdd == 0 )
-  ddends = which( drawdowns == 0 & prevdd != 0 )
-  if(!length(ddstarts))
-    return(data.table(From=as.Date(character(0))
-                      ,Trough=as.Date(character(0))
-                      , To=as.Date(character(0))
-                      , Depth=numeric(0)
-                      ,  Length= numeric(0)
-                      ,"To Trough"=numeric(0)
-                      ,"Recovery"=numeric(0)
-                      , key="Depth"))
-
-  if(tail(ddends,1)!=length(drawdowns))
-    ddends <- c(ddends, length(drawdowns)) # close last incomplete drawdown
-  
-  ddthroughs <- rbindlist(sapply(1:length(ddstarts), function(x) {
-    ddsubset <- drawdowns[ddstarts[x]:ddends[x]]
-    depth <- min(ddsubset)
-    list(depth=depth,
-         index=which(drawdowns==depth)[1])  # take first if multiple matches
-  }, simplify=FALSE))
-  
-  out <- data.table(From=dates[ddstarts]
-             ,Trough=dates[ddthroughs$index]
-             , To=dates[ddends]
-             , Depth=ddthroughs$depth
-             ,  Length= ddends - (ddstarts - 1)
-              ,"To Trough"=ddthroughs$index - (ddstarts - 1)
-              ,"Recovery"=ddends - ddthroughs$index
-             , key="Depth")
-  out[order(Depth)]
-}
-
