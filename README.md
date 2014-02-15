@@ -3,6 +3,12 @@ strategery
 
 Quant Strategy Specification, Backtesting, Optimization And Statistical Analysis Workflow
 
+1. Data management (in real time and for backtesting purposes)
+2. Signal generation system (create, buy and sell signals according to predefined strategies using quantitative methods)
+3. Portfolio and P&L tracking system
+4. Quantitative risk management system (simulate extreme values, limit orders to fit to VaR restrictions)
+5. Routing and execution subsystem (execution trading algorithms, like TWAP, VWAP...)
+
 Install with:
 
     library("devtools")
