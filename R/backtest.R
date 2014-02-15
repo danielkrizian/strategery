@@ -21,13 +21,13 @@ Backtest <- function(...) {
   }
   setkey(mportfolio, Instrument, Date)
     
-  mp <- portfolio(data=mportfolio)
+  mp <- new("Portfolio", assets=mportfolio)
   
     # apply rules in an existing portfolio, generate orders from the position signal
 
   orders <- mp$assets[, OrderSize:=c(ifelse(is.null(btportfolio),
                                             Pos[1],
-                                            Pos[1] - mp$position(Instrument))
+                                            Pos[1] - btportfolio$position(Instrument))
                               ,diff(Pos))
                , by=Instrument]
   orders <- orders[OrderSize!=0,][,list(Instrument, Date, OrderSize)]
