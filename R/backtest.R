@@ -68,7 +68,9 @@ Backtest <- function(...) {
   a <- new("Account",portfolios=list(btportfolio))
   summary <- list()
   summary$returns <- summary.returns(a$returns(), byIns=F)
+  summary$trades <- summary.trades(a$tradePL(), by=NULL)
   print(summary$returns)
+  print(summary$trades)
   plot(a$performance())
   return(list(account=a, summary=summary))
 }

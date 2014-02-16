@@ -340,6 +340,28 @@ summary.returns.by.period <- function(x, byIns=ifelse(is.null(weights),T,F), wei
   
 }
 
+#' Calculate summary statistics for trades
+#' 
+#' @param by Character value. Can be "Instrument", "Side", or "Instrument,Side"
+#' @export
+summary.trades <- function(x, by=NULL) {
+  x[, list(
+    "Number of Trades"=length(PL),
+    "Average Days in Trade"=mean(as.numeric(End-Start)),
+    "Trades/Year"=length(PL)/(as.duration(max(End)-min(Start))/dyears(1)),
+    "Average P/L"=mean(PL),
+    "Average Win"=avgwin(PL, extreme=T),
+    "Average Loss"=avgloss(PL),
+    "Best Trade"=max(PL),
+    "Worst Trade"=min(PL),
+    "Win Rate"=winrate(PL),
+    "Win/Loss"=winloss(PL, extreme=F),
+    "Expectancy"=expectancy(PL),
+    "Profit Factor"=profitfactor(PL, extreme=F)
+  )
+  ,by=by]
+}
+
 plot.returns <- function(x) {
   require(ggplot2);  require(ggthemes); require(grid); require(scales)
   x <- x[,list(Instrument,Date,Equity, Drawdown)]
@@ -399,9 +421,5 @@ summary.drawdowns <- function(drawdowns, dates=NULL) {
                     ,"Recovery"=ddends - ddthroughs$index
                     , key="Depth")
   out[order(Depth)]
-}
-
-summary.trades <- function(trades) {
-  
 }
 

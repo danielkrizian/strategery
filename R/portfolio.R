@@ -2,7 +2,10 @@
 Portfolio.position <- function(instrument=NULL, date=NULL){
   if(!length(assets))
     return(0)
-  last(assets[Instrument==instrument,]$Pos)
+  if(is.null(date))
+    last(assets[Instrument==instrument,]$Pos)
+  else
+    last(assets[Instrument==instrument][Date<=date]$Pos)
 }
 
 Portfolio.addTxns <- function(x){
@@ -46,6 +49,22 @@ Portfolio.calcPL <- function(market=OHLCV){
   return(assets)
 }
 
+Portfolio.tradePL <- function() {
+
+  txns[, TradeID:=cumsum(delay(cumsum(TxnQty), pad=0)==0) ,by=Instrument] # position(Instrument, first(Date))) + 
+  trades <- txns[, list(PL=-sum(TxnValue), 
+                        Base=ifelse(first(TxnValue)>0, sum((TxnValue>0)*TxnValue), sum((TxnValue<0)*TxnValue)),
+                        Start=first(Date),
+                        End=last(Date))
+                 , by="Instrument,TradeID"]
+  trades[,PL:=PL/abs(Base)]
+  trades[,Side:=as.character(factor(Base>0
+                                    , levels=c(T, F)
+                                    , labels=c("Long","Short")))]
+  setattr(trades, "class", c("trades",class(trades)))
+  return(trades)
+}
+
 #' @include assets.R
 Portfolio <- setRefClass("Portfolio"
                          , contains="Assets"
@@ -60,7 +79,8 @@ Portfolio <- setRefClass("Portfolio"
                            },
                            position = Portfolio.position, 
                            addTxns = Portfolio.addTxns,
-                           calcPL = Portfolio.calcPL)
+                           calcPL = Portfolio.calcPL,
+                           tradePL = Portfolio.tradePL)
 )
 
 

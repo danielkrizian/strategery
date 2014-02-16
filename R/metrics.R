@@ -92,3 +92,39 @@ avgdd <- function(x) {
 
   abs(mean(apply( cbind(ddstarts, ddends), 1, function(x){ min( dd[ x[1]:x[2] ]) } )))
 }
+
+######## TRADES #######
+
+avgwin <- function(x, extreme=F) {
+  wins <- x[x>0]
+  if(!extreme)
+    wins <- wins[which(wins<max(wins))]
+  mean(wins)
+}
+
+avgloss <- function(x, scratch=F) {
+  mean(x[x<0])
+}
+
+winrate <- function(x) {
+  sum(x>0)/length(x)
+}
+
+winloss <- function(x, extreme=F) {
+ avgwin(x, extreme=extreme)/abs(avgloss(x))
+}
+
+expectancy <- function(x) {
+#   http://www.learningmarkets.com/determining-expectancy-in-your-trading/
+  winrate <- winrate(x)
+  winloss <- winloss(x, extreme=F)
+  lossratio <- 1 - winrate
+  #   winrate*mean(x[x>0]) + (1-winrate)*mean(x[x<0])
+  winrate * winloss - lossratio
+}
+
+profitfactor <- function(x, extreme=F) {
+  winrate <- winrate(x)
+  winloss <- winloss(x, extreme=extreme)
+  winloss * winrate / (1 - winrate)
+}

@@ -73,15 +73,3 @@ Assets <- setRefClass("Assets"
                         performance=Assets.performance)
 )
 
-
-##### EXPERIMENTAL #####
-
-#' constructor for creating an portfolio object.
-assets <- function(symbols){
-  
-}
-#' TODO: vectorize pattern
-Search <- function(pattern, category="instrument") {
-  View(instrument.table(find.instrument(pattern)))
-}
-
