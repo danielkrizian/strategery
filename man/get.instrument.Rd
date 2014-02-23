@@ -1,0 +1,18 @@
+\name{get.instrument}
+\alias{get.instrument}
+\title{Fetch data about instruments from local file database (INSTRUMENT.rds file)}
+\usage{
+  get.instrument(pattern, field, exact = F, best = T)
+}
+\arguments{
+  \item{pattern}{character string to search}
+
+  \item{exact}{logical. Whole pattern must match exactly?}
+
+  \item{best}{logical. If multiple records match, take top
+  one?}
+}
+\description{
+  Searches in any name field, not only InstrumentID.
+}
+
