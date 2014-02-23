@@ -389,7 +389,7 @@ plot.returns <- function(x) {
 summary.drawdowns <- function(drawdowns, dates=NULL) {
   
   prevdd <- c(0, drawdowns[-length(drawdowns)])
-  
+
   ddstarts = which( drawdowns != 0 & prevdd == 0 )
   ddends = which( drawdowns == 0 & prevdd != 0 )
   if(!length(ddstarts))
@@ -402,7 +402,7 @@ summary.drawdowns <- function(drawdowns, dates=NULL) {
                       ,"Recovery"=numeric(0)
                       , key="Depth"))
   
-  if(tail(ddends,1)!=length(drawdowns))
+  if(tail(ddends,1)!=length(drawdowns) & drawdowns[length(drawdowns)] !=0)
     ddends <- c(ddends, length(drawdowns)) # close last incomplete drawdown
   
   ddthroughs <- rbindlist(sapply(1:length(ddstarts), function(x) {
