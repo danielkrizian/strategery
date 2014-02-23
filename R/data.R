@@ -1,58 +1,27 @@
-# CALENDAR ----------------------------------------------------------------
-
-#' Generate All calendar dates
-#' 
-#' If retclass=xts, returns xts object named "Day", with zeroes.
-#' Construct a calendar of all days
-makeCalendar <- function(y=1800:1915, from, to,
-                         QuantLib.safe=TRUE, retclass=c("data.table", "Date", "xts"),
-                         auto.assign=F, env=.GlobalEnv) {
-  
-  if(length(retclass)>1)
-    retclass <- retclass[1]
-  if(QuantLib.safe) # RQuantLib crashes when from < "1901-01-01"
-    from <- max(from,'1901-01-01')
-  if(missing(from))
-    from <- paste(y[1],"12","31",sep="/")
-  if(missing(to))
-    to <- paste(y[length(y)],"12","31",sep="/")
-  dates <- seq(from=as.Date(from), to=as.Date(to),by = "day")
-  # see also ?seq.Date. Compare speeds.
-  
-  if(identical(retclass, "data.table"))
-    out <- data.table(Date=as.IDate(dates), key="Date")
-  
-  if(identical(retclass, "Date"))
-    out <- dates
-  
-  if(identical(retclass, "xts")) {
-    out <- xts(rep(0, days.count), order.by=dates )
-    colnames(out) <- "Day"
-  }
-  
-  if (auto.assign) {
-    assign( "calendar"  , out , env)
-    return(env)
-  }
-  return(out)
-}
-
-#' Construct a calendar of all days
-#' 
-#' Warning: Saturdays before 1952-09-29 not yet accomodated
-#' @source NYSE Holidays: http://www.nyse.com/pdfs/closings.pdf
-#' @source NYSE Trading Hours (Saturdays before 1952-09-29): http://www.nyse.com/pdfs/historical_trading_hours.pdf
+# INSTRUMENT --------------------------------------------------------------
+#' Fetch data about instruments from local file database (INSTRUMENT.rds file)
+#'
+#' Searches in any name field, not only InstrumentID.
+#' @param pattern character string to search
+#' @param exact logical. Whole pattern must match exactly?
+#' @param best logical. If multiple records match, take top one?
 #' @export
-Calendar <- function (y=1800:2015) {
-  out <- makeCalendar(y=y, QuantLib.safe=FALSE, retclass="data.table")
-  out[,year:=year(Date)]
-  out[,month:=month(Date)]
-  out[,week:=week(Date)]
-  out[,wday:=as.POSIXlt(Date)$wday] #day of the week
-  out[,day:=mday(Date)]
-  setkey(out,"Date")
-  return(out)
+get.instrument <- function(pattern, field, exact=F, best=T) {
+  INSTRUMENT[InstrumentID %like% pattern | Name %like% pattern | 
+               LongName %like% pattern][1][[field]]
 }
+
+#' @export
+get.holidays <- function(exchange, years=1800:2015) {
+  if(identical(exchange,"NYSE")) {
+    zone <- "NewYork"
+    FinCenter <- "NewYork"
+    holidayFUN <- "holidayNYSE"
+  }
+  holidays <- as.Date(do.call(holidayFUN, list(year=years)))
+}
+
+# CALENDAR ----------------------------------------------------------------
 
 #' Construct an Exchange-specific calendar of trading (business) days
 #' 
@@ -61,30 +30,6 @@ Calendar <- function (y=1800:2015) {
 #' @source NYSE Holidays: http://www.nyse.com/pdfs/closings.pdf
 #' @source NYSE Trading Hours (Saturdays before 1952-09-29): http://www.nyse.com/pdfs/historical_trading_hours.pdf
 #' @export
-
-# calendar2 <- function(year=format(Sys.Date(), "%Y"), FUN=holidayNYSE) {
-#   # the next few lines should be removed when this code is added to a package
-#   # that Imports timeDate
-#   if (!"package:timeDate" %in% search()) {
-#     suppressPackageStartupMessages({ 
-#       if (!require(timeDate)) {
-#         stop("timeDate must be installed to use this function.")
-#       }
-#     })
-#     on.exit(detach(package:timeDate, unload=TRUE))
-#   }
-#   ## End of code that should be removed when this is added to a package
-#   year <- as.numeric(year)
-#   fun <- match.fun(FUN)
-#   do.call('c', lapply(year, function(y) {
-#     holidays <- as.Date(fun(year=y))
-#     all.days <- seq.Date(as.Date(paste(y, '01-01', sep='-')), 
-#                          as.Date(paste(y, '12-31', sep='-')), by='days')
-#     nohol <- all.days[!all.days %in% holidays]
-#     nohol[!format(nohol, '%w') %in% c("6", "0")] #neither holiday nor weekend
-#   }))
-# }
-
 calendar <- function (exchange=NULL, years=1800:2015, from, to, QuantLib.safe=TRUE) {
   
   # if(QuantLib.safe) # RQuantLib crashes when from < "1901-01-01"
@@ -98,15 +43,9 @@ calendar <- function (exchange=NULL, years=1800:2015, from, to, QuantLib.safe=TR
   
   if(is.null(exchange))
     return(all.days)
-  
 
-  if(identical(exchange,"NYSE")) {
-    zone <- "NewYork"
-    FinCenter <- "NewYork"
-    holidayFUN <- "holidayNYSE"
-  }
-  
-    holidays <- as.Date(do.call(holidayFUN, list(year=years)))
+  holidays <- get.holidays(exchange, years=years)
+
     nohol <- all.days[!all.days %in% holidays]
     noholw <- nohol[!format(nohol, '%w') %in% c("6", "0")] 
     #neither holiday nor weekend
@@ -122,24 +61,22 @@ calendar <- function (exchange=NULL, years=1800:2015, from, to, QuantLib.safe=TR
 #' If exchange = NULL - calendar days as opposed to trading days
 #' @export
 time.frame <- function(symbols, bds=TRUE) {
-
   if(bds){
     #Exchange, Instrument data.table
-    IE <- data.table(Instrument=symbols)
-    IE[,Exchange:=getInstrument(Instrument)$exchange] 
-    setkey(IE,Exchange)
-    
-    ED <- rbindlist(lapply(unique(IE)$Exchange,
-                           function(e) data.table(Exchange=e
-                                                  , Date=calendar(e))))
+    IE <- INSTRUMENT[InstrumentID==symbols][,list(InstrumentID,Exchange)]
+    setnames(IE, "InstrumentID", "Instrument")
+    #     setkey(IE,Exchange)
+    #     ED <- rbindlist(lapply(unique(IE)$Exchange,
+    #                            function(e) data.table(Exchange=e
+    #                                                   , Date=calendar(e))))
     #Exchange, Date data.table
-    setkey(ED, Exchange)
+    #     setkey(ED, Exchange)
     
-    ID <- IE[ED][,list(Instrument, Date)] # Instrument, Date data.table
+    #     ID <- IE[ED][,list(Instrument, Date)] # Instrument, Date data.table
+    ID <- IE[,data.table(Date=calendar(Exchange)), by=Instrument]
   } else {
     ID <- CJ(Instrument=symbols, Date=calendar())
   }
-
   setkey(ID, Instrument, Date)
   return(ID)
 }
@@ -161,54 +98,6 @@ as.data.table.xts <- function(x){
   return(DT)
 }
 
-# as.assets <- function(x) {
-#   # multi-assets
-#   
-# x <- as.data.table(x)
-#     
-#     DT <- as.data.table(as.data.frame(x))
-#   DT[, Date:=index(x)]
-#   setkey(DT,Date)
-#   setcolorder(DT,c("Date",names(x)))
-#   
-#     is.null(attr(x,"name"))
-#     match("Instrument",names(x))
-#     multiasset <- 
-#   xtscols <- names(x)
-#   
-#   measure.vars <- intersect(c("Open","High","Low","Close", "Price", "Return"))
-#   
-#   DT <- data.table(Date=as.IDate(index(x))
-#                    , Open=op
-#                    , High=hi
-#                    , Low=lo
-#                    , Close=cl)
-#   
-#   dots <- melt.data.table(data, id=c(icol), measure.vars=NULL,
-#                           variable.name=c("Date"),value.name="Return",
-#                           na.rm=TRUE, variable.factor=FALSE)
-#   instruments <- ifelse(!is.na(icol), x[,icol], attr(x,"name")
-#                         
-#                         require(quantmod)
-#                         if(is.OHLC(x)) {
-#                           op <- as.numeric(x[,has.Op(x,which=T)])
-#                           hi <- as.numeric(x[,has.Hi(x,which=T)])
-#                           lo <- as.numeric(x[,has.Lo(x,which=T)])
-#                           cl <- as.numeric(x[,has.Cl(x,which=T)])
-#                           DT <- data.table(Date=as.IDate(index(x))
-#                                            , Open=op
-#                                            , High=hi
-#                                            , Low=lo
-#                                            , Close=cl)
-#                         }
-#                         
-#                         
-#                         name <- ifelse(,as.character(substitute(x)))
-#                         
-#                         
-#                         setkeyv(DT, c(instrument.col,"Date"))  
-#                         return(DT)
-# }
 
 has.Return <- function (x, which = FALSE) 
 {
@@ -222,48 +111,6 @@ has.Return <- function (x, which = FALSE)
   else FALSE
 }
 
-getDatabasePath <- function(){
-  "G:\\Database\\OHLCV.rds.gz"
-}
-
-#' loadOHLCV
-#' 
-#' @param x An xts object with OHLC-like structure (quantmod::is.OHLC(x) == TRUE) 
-#' @export
-loadOHLCV <- function(file=file.path(system.file(package = "strategery"), "data", "OHLCV.rds.gz")){
-  envir <- .GlobalEnv
-  out <- readRDS(file)
-  assign("OHLCV",out, envir=envir)
-  return(out)
-}
-
-#' saveOHLCV
-#' 
-#' @param x An xts object with OHLC-like structure (quantmod::is.OHLC(x) == TRUE) 
-#' @export
-saveOHLCV <- function(file="G:\\Database\\OHLCV.rds.gz"){
-  saveRDS(OHLCV, file, compress=T)
-}
-
-#' UpdateOHLCV
-#' 
-#' @param x An xts object with OHLC-like structure (quantmod::is.OHLC(x) == TRUE) 
-#' @export
-updateOHLCV <- function(x){
-
-  new <- as.data.table(getSymbols("SPX", src="yahoo", from="1900-01-01", auto.assign=FALSE))
-  setnames(new, names(new), sub("SPX.","",names(new)))
-  new[,Instrument:="SPX"]
-  new[, Source:= 1L]
-  setcolorder(new, c("Instrument","Date","Open", "High", "Low","Close", "Volume","Adjusted", "Source" ))
-  setkey(new, Instrument, Date)
-  setkey(OHLCV,NULL)
-  OHLCV[, Source:= 0L]
-  OHLCV <- rbindlist(list(OHLCV,new[Date>"2012-12-18"]))
-  setkey(OHLCV, Instrument, Date)
-  return(OHLCV)
-}
-
 #' Define universe of trading opportunities (instruments x bars)
 #' 
 #' Construct trading bars frame for each symbol
@@ -271,16 +118,28 @@ updateOHLCV <- function(x){
 Universe <- function(
   instruments #c("SPY", "AAPL")
 ){
-  # these three lines are temporary, until organized into database
-  if("SPX" %in% instruments) {
-    fund("SPX", currency=currency("USD"))
-    # instrument_attr("SPX",attr="OHLC",value=SPX)
-    instrument_attr("SPX",attr="exchange",value="NYSE")
-    loadOHLCV()
+  
+  # these ines are temporary, until organized into database
+  options(DBpath=file.path(system.file(package = "strategery"), "data"))
+  loadOHLCV <- function(file=file.path(getOption("DBpath"), "OHLCV.rds")){
+    envir <- .GlobalEnv
+    out <- readRDS(file)
+    assign("OHLCV",out, envir=envir)
+    return(out)
   }
+  loadINSTRUMENT <- function(file=file.path(getOption("DBpath"), "INSTRUMENT.rds")){
+    envir <- .GlobalEnv
+    out <- readRDS(file)
+    assign("INSTRUMENT",out, envir=envir)
+    return(out)
+  }
+  
+  loadINSTRUMENT()
+  loadOHLCV()
+  
+  # subset universe
   OHLCV <- OHLCV[Instrument %in% instruments]
-#   u <- time.frame(instruments, bds=TRUE)
-#   assign("R", copy(u), envir=.GlobalEnv)
+
 }
 
 Cl <- function(x){
