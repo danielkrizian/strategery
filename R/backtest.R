@@ -155,11 +155,13 @@ Cross <- function(x, y) {
   ExRem(above)
 }
 
+#' @export
 anticipate <- function(x, k=1, pad=NA) {
   k <- abs(k)
   c( tail(x, -k), rep(pad, k) )
 }
 
+#' @export
 delay <- function(x, k=1, pad=NA) {
   k <- abs(k)
   c( rep(pad, k) , head(x, -k) )

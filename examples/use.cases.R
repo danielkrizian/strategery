@@ -1,5 +1,7 @@
 require(strategery)
 
+##### Turn Of The Month ######
+
 # This strategy goes long the S&P 500 index around the turn of each month 
 # (last trading day and first three trading days). 
 # Momentum filter applied, i.e. price must be greater than 20 days ago.
@@ -26,7 +28,7 @@ first.days <- 3
 TOM <- indicator( TurnOfMonth(Date, last.days, first.days, advance=2), input=cal)
 mom <- indicator( momentum(Close, nmom), input=OHLCV)
 
-Long <- (mom>0) %AND% (TOM==TRUE) %position% shares(1) # %buy% equity.pct(2) 
+Long <- (mom>0) %AND% (TOM==TRUE) %position% shares(1)
 Neutral <- (mom<=0) %OR% (TOM!=TRUE) %position% shares(0)
 # Rebalance <- EOM==TRUE %rebalance% equitypct(20) # rebalance rule: each month, rebalance to 20% equity target
 Check(plot=F, window="1980")
@@ -37,10 +39,10 @@ bt <- Backtest()
 
 saveStrategy()
 
+##### FOMC ######
 
 newStrategy("fomc")
-symbols <- "SPX"
-Universe(symbols)
+Universe("SPX")
 
 # data 1980-2011 based on Lucca Moench (2012)
 # prior to 1994: market infers info from Open Market Operations day following the meeting
@@ -51,7 +53,7 @@ Universe(symbols)
 # Hence, the 2pm-2pm pre-FOMC window that we study in the post-1994
 # "Greenbook" rule prior xxxx : The calendar of past FOMC meetings and those scheduled for the next year can be found at www.federalreserve. gov/monetarypolicy/fomccalendars.htm. The website clearly marks conference calls, which are always unscheduled. We distinguish the very infrequent unscheduled meetings not conducted via teleconference from scheduled ones based on whether staff material for FOMC members (the "Greenbook") had been prepared in advance of each meeting.# The evidence prior to 1994 is based on daily data. Over that period we consider as pre-FOMC returns those earned on days of scheduled FOMC meetings, which mark the last trading session
 # use only since 1980 (as in study). Prior to 1980 unverified data (Greenbook)
-FomcDay <- function(x, before=2) {
+FomcDay <- function(x, before=2 ) {
   # Only (last day of) scheduled meetings 
   # Prior 1994, Greenbook indicates scheduled meetings 
   # Data prior 1980 unverified and not used in Lucca Moench (2012) study. TODO test prior 1980
@@ -70,9 +72,33 @@ beforeFOMC <- 2
 
 FOMC <- indicator( FomcDay(Date, before=beforeFOMC), input=cal)
 
-Long <- (FOMC==TRUE) %position% shares(1) # %buy% equity.pct(2) 
+Long <- (FOMC==TRUE) %position% shares(1)
 Neutral <- (FOMC!=TRUE) %position% shares(0)
 
 Backtest()
 
 saveStrategy()
+
+##### Holiday effect #####
+# Tsiakas(2010) tested since 1962 that: preholidays, postholidays, and prelong weekends 
+# have significantly higher mean and lower volatility than regular trading days
+# whereas postlong weekends have lower mean and higher volatility.
+
+newStrategy("holiday")
+Universe("SPX")
+require(timeDate)
+
+# on the OHLCV frame, mark preholidays as TRUE, others as FALSE
+HOL <- CJ(Instrument=unique(OHLCV$Instrument), 
+          Date=as.IDate(holidayNYSE(1800:2015))) [,PreHoliday:=TRUE]
+PREHOL <- HOL[OHLCV[,list(Instrument,Date)],roll=-1][is.na(PreHoliday),PreHoliday:=FALSE]
+
+advanceBarsForSig <- 2 # anticipate signal n days in advance
+preholiday <- indicator( anticipate(PreHoliday, advanceBarsForSig, pad=F), input=PREHOL)
+
+Long <- (preholiday==TRUE) %position% shares(1)
+Neutral <- (preholiday!=TRUE) %position% shares(0)
+
+Backtest()
+
+Check(window="2013")
