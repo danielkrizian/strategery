@@ -205,22 +205,17 @@ deconstruct_and_eval2 = function(expr, envir = parent.frame(), enclos = parent.f
       if (m[[1]] == quote(eval)) eval(m[[2]], envir, enclos)
       else deconstruct_and_eval2(m, envir, enclos)
     } else {
-      
+#       browser()
       # my edit to the [.data.table original
-      if(exists(as.character(m),envir=as.environment(.GlobalEnv))) { #was R
-        if(!is.function(eval(m, envir=as.environment(.GlobalEnv)))) #was R
-          eval(m,envir=as.environment(.GlobalEnv)) #was R
+      if(exists(as.character(m),envir=as.environment(.GlobalEnv))) {
+        if(!is.function(eval(m, envir=as.environment(.GlobalEnv))) &
+             !existsFunction(as.character(m)) &
+             class(get(as.character(m)))!="indicator") # added. Do not want to eval indicators here
+          eval(m,envir=as.environment(.GlobalEnv))
         else
+          # end edit
           m
       }
-      if(exists(as.character(m),envir=.GlobalEnv)) {
-        if(!existsFunction(as.character(m)))
-          eval(m)
-        else
-          m
-      } else
-        # end edit
-        m
     }
   })
 }
