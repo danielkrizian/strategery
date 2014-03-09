@@ -1,10 +1,10 @@
 \name{indicator}
 \alias{indicator}
-\title{Define indicator formula for later evaluation}
+\title{Construct indicator}
 \usage{
-  indicator(call, input)
+  indicator(formula, data)
 }
 \description{
-  Define indicator formula for later evaluation
+  Construct indicator
 }
 

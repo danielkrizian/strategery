@@ -6,7 +6,7 @@ ls_rules <- function (envir=.GlobalEnv) {
 eval.rule <- function(rule) {
   if(is.character(rule))
     rule <- get(rule)
-  sigdata <- calc(rule$signal)$data[Signal==TRUE,][,Signal:=NULL]
+  sigdata <- as.indicator(rule)[Value==TRUE,][,Value:=NULL]
   if(is.numeric(rule$size))
     rule$portfolio <- sigdata[, Pos:=rule$size]
   return(rule)
@@ -14,10 +14,18 @@ eval.rule <- function(rule) {
 
 print.rule <- function(rule) {
   print(eval.rule(rule)$portfolio)
+} 
+
+dat <-  function(x, ...) {
+  UseMethod("dat", x)
 }
 
 #' @method dat rule
 #' @S3method dat rule
 dat.rule <- function(rule) {
   eval.rule(rule)$portfolio
+}
+
+is.rule <- function(x) {
+  class(x)=="rule"
 }

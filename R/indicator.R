@@ -1,81 +1,132 @@
-#' Some text
+
+as.indicator <- function(x, ...) {
+  UseMethod("as.indicator",x)
+}
+
+#' @method as.indicator data.table
+#' @S3method as.indicator data.table
+as.indicator.data.table <- function(x, sfl=NULL) {
+  setattr(x,"class",c("indicator","data.table","data.frame"))
+  return(structure(x, sfl=sfl))
+}
+
+#' @method as.indicator sfl
+#' @S3method as.indicator sfl
+as.indicator.sfl <- function(x) {
+  return(eval(construct(deconstruct.sfl(x))))
+}
+
+#' @method as.indicator rule
+#' @S3method as.indicator rule
+as.indicator.rule <- function(x) {
+  return(eval(construct(deconstruct.sfl(x$signal))))
+}
+
+is.indicator <- function(x) {
+  any("indicator" %in% class(x))
+}
+
+#' Construct indicator
 #' 
-#' @rdname calc
-#' @export calc
-calc <- function(x, with.name=FALSE) {
-  
-  if(with.name) {
-    name <- as.list(match.call())[[2]]
-    NextMethod("calc",x, name=name)
-  } else
-    UseMethod("calc",x)
-  
-}
-
-#' Define indicator formula for later evaluation
-#' 
-#' @export
-indicator <- function (call, input)  {
-  .Data <- list()
-  .Data$input <- deparse(substitute(input))
-  .Data$call <- substitute(call)
-  structure(.Data=.Data, class=c("indicator"))#,class(get("data"))))
-}
-
-ls_indicators <- function (envir=.GlobalEnv) {
-  all <- ls(envir=envir)
-  all[sapply(all, function(x) class(get(x))[1] == "indicator")]
-}
-
-#' @return \code{NULL}
-#'
-#' @rdname calc
-#' @method calc indicator
-#' @S3method calc indicator
-calc.indicator <- function(x, name, ...) {
-  # TODO Delete setkey line if you have installed data.table rev 999 and up
-  # TODO: remove 'ohlc' dependency
-  .call <- x$call
-  .call <- construct(deconstruct_and_eval2(.call))
-  .data <- get(x$input)[, Value:=eval(.call), by=Instrument]
-  .data <- .data[, list(Instrument, Date, Value)]
-  setkey(.data, Instrument, Date) # loses key, so setkey again. Bug in data.table
-  .data <- align.data.table(.data, to=OHLCV)
-  if(!missing(name)) {
-    if(is.symbol(name)) name <- deparse(name)
-    setnames(.data, "Value", name )
+#' @rdname indicator
+#' @export indicator
+indicator <- function (formula, data)  {
+  if(is.sfl(substitute(formula)) & missing(data))
+    return(eval(formula))
+  else {
+    op <- as.name("%indicator%")
+    .Data <- substitute(op(data, formula))
+    structure(.Data=.Data, class=c("sfl"))
   }
-  x$data <- .data
-  return(x)
 }
 
-
-dat <-  function(x, ...) {
-  UseMethod("dat", x)
-}
-
-#' @method dat indicator
-#' @S3method dat indicator
-dat.indicator <- function(x, name) {
-  calc.indicator(x, name=name)$data
+#' @rdname %indicator%
+#' @export %indicator%
+`%indicator%` <- function(e1, e2) {
+  op <- match.call()[[1]]
+  sfl <- substitute(op(e1,e2))
+  .data <- e1[, Value:=eval(substitute(e2)), by=Instrument]
+  .data <- .data[, list(Instrument, Date, Value)]
+  .data <- align.data.table(.data, to=OHLCV)
+  return(as.indicator(.data, sfl=sfl))
 }
 
 #' @method Ops indicator
 #' @S3method Ops indicator
-`Ops.indicator` <- function(x, y) {
+Ops.indicator <- function(e1, e2) {
   op <- as.name(.Generic)
-  sig.call <- substitute(op(x, y))
-  ind <- calc.indicator(x)
-  thres <- y
-  expr <- substitute(op(Value, thres))
-  sig.data <- ind$data[,Signal:=eval(expr), by=Instrument]
-  sig.data[,Value:=NULL]
-  return(signal(call = sig.call, data=sig.data))
+  sfl <- substitute(op(e1, e2))
+  if(is.numeric(e2) | is.logical(e2)) {
+    expr <- substitute(op(Value, e2))
+    if(as.character(op) %in% c("==", "!=", "<", "<=", ">=", ">")) {
+      cl <- class(e1$Value)
+      .data <- e1[,Value:=as(eval(expr), cl), by=Instrument]
+      .data[,Value:=as.logical(Value)]
+      # because assigning directly Value:=eval(expr) throws error: 
+      # "Type of RHS ('logical') must match LHS."
+    } else
+      if(as.character(op) %in% c("&", "|")) {
+        .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
+                                     e2[e1, roll = T, rollends=FALSE],
+                                     use.names = TRUE),
+                               Instrument, Date))
+        if(as.character(op) =="&")
+          .data[,Value := as.logical(Value * Value.1)]
+        else
+          .data[,Value := as.logical(Value + Value.1)]
+        
+        .data <- .data[, list(Instrument, Date, Value)]
+      }
+    else
+      .data <- e1[,Value:=eval(expr), by=Instrument]
+  }
+  return(as.indicator(.data, sfl=sfl))
+}
+
+#' @method %AND% indicator
+#' @S3method %AND% indicator
+`%AND%.indicator` <- function(e1, e2) {
+  .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
+                               e2[e1, roll = T, rollends=FALSE],
+                               use.names = TRUE),
+                         Instrument, Date))
+  .data[,Value := as.logical(Value * Value.1)]
+  .data <- .data[, list(Instrument, Date, Value)]
+  #   Z <- sig.compress(Z)
+  
+  op <- as.name(.Generic)
+  sfl <- substitute(op(e1, e2))
+  
+  return(as.indicator(.data, sfl=sfl))
+}
+
+#' @method %OR% indicator
+#' @S3method %OR% indicator
+`%OR%.indicator` <- function(e1, e2) {
+  .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
+                               e2[e1, roll = T, rollends=FALSE],
+                               use.names = TRUE),
+                         Instrument, Date))
+  .data[,Value := as.logical(Value + Value.1)]
+  .data <- .data[, list(Instrument, Date, Value)]
+  #   Z <- sig.compress(Z)
+  
+  op <- as.name(.Generic)
+  sfl <- substitute(op(e1, e2))
+  
+  return(as.indicator(.data, sfl=sfl))
 }
 
 #' @method print indicator
 #' @S3method print indicator
-print.indicator <- function(x, ...) {
-  ind <- calc(x, with.name=FALSE)
-  print(ind$data)
+print.indicator <- function(x) {
+  print(data.table(x))
+}
+
+ls_indicators <- function (envir=.GlobalEnv) {
+  
+  all <- ls(envir=envir)
+  all[sapply(all, function(x) {
+    is.indicator(eval(get(x)))}
+    )]
 }

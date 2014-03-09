@@ -185,55 +185,6 @@ shift <- function(x, k) {
   
 }
 
-deconstruct_and_eval2 = function(expr, envir = parent.frame(), enclos = parent.frame()) {
-  
-  if (!mode(expr) %in% c("call", "expression")) 
-    return(expr)
-  
-  if (length(expr) == 1) {
-    if (is.call(expr[[1]])) return (deconstruct_and_eval2(expr[[1]]))
-    else return(expr)
-  }
-  # don't evaluate eval's if the environment is specified
-  
-  if (expr[[1]] == quote(eval) && length(expr) < 3) {
-    return(deconstruct_and_eval2(eval(expr[[2]], envir, enclos), envir, enclos))
-  }
-  
-  lapply(expr, function(m) {
-    if (is.call(m)) {
-      if (m[[1]] == quote(eval)) eval(m[[2]], envir, enclos)
-      else deconstruct_and_eval2(m, envir, enclos)
-    } else {
-#       browser()
-      # my edit to the [.data.table original
-      if(exists(as.character(m),envir=as.environment(.GlobalEnv))) {
-        if(!is.function(eval(m, envir=as.environment(.GlobalEnv))) &
-             !existsFunction(as.character(m)) &
-             class(get(as.character(m)))!="indicator") # added. Do not want to eval indicators here
-          eval(m,envir=as.environment(.GlobalEnv))
-        else
-          # end edit
-          m
-      }
-    }
-  })
-}
-
-construct = function(l) {
-  if (length(l) == 0) return(NULL)
-  if (length(l) == 1) return(l)
-  
-  if (identical(l[[1]], quote(`function`))) return(as.call(list(l[[1]], l[[2]], construct(l[[3]]))))
-  
-  if (!is.list(l)) return(l)
-  
-  as.call(setNames(lapply(l, function(m) {
-    if (length(m) == 1) m
-    else construct(m)
-  }), names(l)))
-}
-
 #' Some Title
 #' 
 #' @export

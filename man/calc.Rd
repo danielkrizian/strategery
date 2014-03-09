@@ -8,7 +8,7 @@
 
   \method{calc}{indicator} (x, name, ...)
 
-  \method{calc}{indicator} (x, name, ...)
+  \method{calc}{signal} (x, name, ...)
 }
 \value{
   \code{NULL}
