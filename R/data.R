@@ -84,20 +84,6 @@ time.frame <- function(symbols, bds=TRUE) {
 
 
 # INSTRUMENTS -------------------------------------------------------------------
-#' Convert xts to data.table
-#'
-#' @export
-as.data.table.xts <- function(x){
-  #' #http://r.789695.n4.nabble.com/data-table-and-time-series-subsetting-td4633223.html
-  #' http://stackoverflow.com/questions/17345951/data-table-time-subset-vs-xts-time-subset
-  DT <- as.data.table(as.data.frame(x))
-  DT[, Date:=index(x)]
-  setkey(DT,Date)
-  setcolorder(DT,c("Date",names(x)))
-
-  return(DT)
-}
-
 
 has.Return <- function (x, which = FALSE) 
 {
@@ -111,34 +97,23 @@ has.Return <- function (x, which = FALSE)
   else FALSE
 }
 
-#' Define universe of trading opportunities (instruments x bars)
+#' Define universe of trading opportunities (instruments by bars)
 #' 
-#' Construct trading bars frame for each symbol
+#' Loads INSTRUMENT and OHLCV data for trading. Subsets by instruments specified. 
+#' Constructs trading bars frame for each instrument
 #' @export
-Universe <- function(
-  instruments #c("SPY", "AAPL")
-){
+Universe <- function(..., load.path=NULL){
+
+  instruments <- as.character(unlist(list(...)))
+
+  if(is.null(getOption("DBpath")) & is.null(load.path))
+     options(DBpath=file.path(system.file(package = "strategery"), "data"))
   
-  # these ines are temporary, until organized into database
-  options(DBpath=file.path(system.file(package = "strategery"), "data"))
-  loadOHLCV <- function(file=file.path(getOption("DBpath"), "OHLCV.rds")){
-    envir <- .GlobalEnv
-    out <- readRDS(file)
-    assign("OHLCV",out, envir=envir)
-    return(out)
-  }
-  loadINSTRUMENT <- function(file=file.path(getOption("DBpath"), "INSTRUMENT.rds")){
-    envir <- .GlobalEnv
-    out <- readRDS(file)
-    assign("INSTRUMENT",out, envir=envir)
-    return(out)
-  }
-  
-  loadINSTRUMENT()
-  loadOHLCV()
+  # load data
+  loadDB(tables=c("INSTRUMENT","OHLCV"))
   
   # subset universe
-  OHLCV <- OHLCV[Instrument %in% instruments]
+  OHLCV <<- OHLCV[Instrument %in% instruments]
 
 }
 

@@ -1,0 +1,22 @@
+\name{upsert}
+\alias{upsert}
+\title{Upsert}
+\usage{
+  upsert(x, new = "get.object.source", src,
+    always.insert = FALSE, always.update = FALSE,
+    compare.by = key(x), ...)
+}
+\arguments{
+  \item{new}{a data.table or character string of a function
+  name that retrieves new data}
+
+  \item{always.insert}{logical. If discrepancies in the
+  non-keyed columns found, still do inserts of new rows?}
+
+  \item{always.update}{logical. If discrepancies in the
+  non-keyed columns found, update the values?}
+}
+\description{
+  Upsert
+}
+

@@ -1,10 +1,12 @@
 \name{Universe}
 \alias{Universe}
-\title{Define universe of trading opportunities (instruments x bars)}
+\title{Define universe of trading opportunities (instruments by bars)}
 \usage{
-  Universe(instruments)
+  Universe(..., load.path = NULL)
 }
 \description{
-  Construct trading bars frame for each symbol
+  Loads INSTRUMENT and OHLCV data for trading. Subsets by
+  instruments specified. Constructs trading bars frame for
+  each instrument
 }
 
