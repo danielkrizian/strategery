@@ -102,15 +102,20 @@ has.Return <- function (x, which = FALSE)
 #' Loads INSTRUMENT and OHLCV data for trading. Subsets by instruments specified. 
 #' Constructs trading bars frame for each instrument
 #' @export
-Universe <- function(..., load.path=NULL){
+Universe <- function(..., load.path=file.path(system.file(package = "strategery"), "data")){
 
   instruments <- as.character(unlist(list(...)))
 
-  if(is.null(getOption("DBpath")) & is.null(load.path))
-     options(DBpath=file.path(system.file(package = "strategery"), "data"))
-  
+  if(missing(load.path)) {
+    warning("Database path not provided, hence using 'strategery' package default database. 
+            You can set the path via options(DBpath='your path') or provide it via 
+            load.path argument." , immediate. = TRUE)
+#     options(DBpath=file.path(system.file(package = "strategery"), "data"))
+  }
+     
+  # is.null(getOption("DBpath")) & 
   # load data
-  loadDB(tables=c("INSTRUMENT","OHLCV"))
+  loadDB(tables=c("INSTRUMENT","OHLCV"), path=load.path)
   
   # subset universe
   OHLCV <<- OHLCV[Instrument %in% instruments]
