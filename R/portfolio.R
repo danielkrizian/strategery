@@ -29,12 +29,16 @@ Portfolio.calcPL <- function(market=OHLCV){
   #' 
   #' Gross.Trading.PL=Pos.Value- LagValue - Txn.Value
   #' Period.Unrealized.PL = Gross.Trading.PL - Gross.Txn.Realized.PL
-  
+
   market <- market[,list(Instrument, Date, Close)]
   setnames(market,"Close","Price")
-  start <- min(assets[,.SD[1] ,
-                      by=Instrument]$Date) # start from the first available position, not from the first market price
-  marked.portfolio <- assets[market[Date>=start], roll=TRUE][, Value:=Pos * Price]
+  
+  # start from the first available position, not from the first market price
+  START <- assets[,list(First=min(Date)), by=Instrument]
+  bounded.market <- market[START][Date>=First][,First:=NULL]
+  setkey(bounded.market, Instrument, Date)
+  
+  marked.portfolio <- assets[bounded.market, roll=TRUE][, Value:=Pos * Price]
   # handle missing TxnValue - fill zeroes alternative
   cols <- c("Instrument", "Date", "Pos", "Price", "Value")
   valued <- marked.portfolio[, cols, with=FALSE]

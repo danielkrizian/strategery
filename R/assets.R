@@ -5,8 +5,7 @@ Assets.returns <- function(interval="days") {
   else {
     if(inherits(.self, "Portfolio")) {
       if(! "PL" %in% names(assets)) assets <<- .self$calcPL()
-      
-      performance <- assets[,list(PL=sum(PL), Prev.Value=sum(Prev.Value)), by=Date]
+      performance <- assets[,list(PL=sum(PL), Prev.Value=sum(Prev.Value)), keyby=Date]
       performance[             , Return:=0]
       performance[Prev.Value!=0, Return:=PL/abs(Prev.Value)]
       performance[,Instrument:=if(length(name)) name else "Portfolio"]
