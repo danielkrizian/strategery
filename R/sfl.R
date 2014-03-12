@@ -56,12 +56,18 @@ deconstruct.sfl = function(expr, envir = parent.frame(), enclos = parent.frame()
       if (m[[1]] == quote(eval)) eval(m[[2]], envir, enclos)
       else deconstruct.sfl(m, envir, enclos)
     } else if(is.name(m)){
-      if(exists(as.character(m),envir=as.environment(.GlobalEnv)) &
-           !existsFunction(as.character(m))) {
+      if(exists(as.character(m),envir=as.environment(.GlobalEnv))) {
+        # & !existsFunction(as.character(m)) # commented out because of clash
+        # SMA <- indicator( SMA(Close, nsma), data=OHLCV)
         obj <- eval(m, envir=as.environment(.GlobalEnv))
         if(identical(class(obj),"sfl")) {
           m1 <- do.call(substitute, list(eval(m)))
-          return(deconstruct.sfl(m1, envir, enclos))
+          if(m1[[1]]==quote(`%indicator%`))
+            return(m1) # resolves clash Close <- indicator(Close, data=OHLCV)
+          else 
+            if(existsFunction(as.character(m))) deconstruct.sfl(m, envir, enclos) 
+          else
+            return(deconstruct.sfl(m1, envir, enclos))
         } else m
       } else m
     } else m

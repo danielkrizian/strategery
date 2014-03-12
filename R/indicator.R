@@ -13,7 +13,10 @@ as.indicator.data.table <- function(x, sfl=NULL) {
 #' @method as.indicator sfl
 #' @S3method as.indicator sfl
 as.indicator.sfl <- function(x) {
-  return(eval(construct(deconstruct.sfl(x))))
+  if(x[[1]]==quote(`%indicator%`))
+    eval(x)
+  else
+    eval(construct(deconstruct.sfl(x)))
 }
 
 #' @method as.indicator rule
@@ -55,7 +58,6 @@ indicator <- function (formula, data)  {
 #' @S3method Ops indicator
 Ops.indicator <- function(e1, e2) {
   op <- as.name(.Generic)
-  sfl <- substitute(op(e1, e2))
   if(is.numeric(e2) | is.logical(e2)) {
     expr <- substitute(op(Value, e2))
     if(as.character(op) %in% c("==", "!=", "<", "<=", ">=", ">")) {
@@ -64,22 +66,33 @@ Ops.indicator <- function(e1, e2) {
       .data[,Value:=as.logical(Value)]
       # because assigning directly Value:=eval(expr) throws error: 
       # "Type of RHS ('logical') must match LHS."
-    } else
-      if(as.character(op) %in% c("&", "|")) {
-        .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
-                                     e2[e1, roll = T, rollends=FALSE],
-                                     use.names = TRUE),
-                               Instrument, Date))
-        if(as.character(op) =="&")
-          .data[,Value := as.logical(Value * Value.1)]
-        else
-          .data[,Value := as.logical(Value + Value.1)]
-        
-        .data <- .data[, list(Instrument, Date, Value)]
-      }
-    else
-      .data <- e1[,Value:=eval(expr), by=Instrument]
+    }
   }
+  else if(is.indicator(e2)) {
+    if(as.character(op) %in% c("&", "|")) {
+      .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
+                                   e2[e1, roll = T, rollends=FALSE],
+                                   use.names = TRUE),
+                             Instrument, Date))
+      if(as.character(op) =="&")
+        .data[,Value := as.logical(Value * Value.1)]
+      else
+        .data[,Value := as.logical(Value + Value.1)]
+      
+      .data <- .data[, list(Instrument, Date, Value)]
+    } else {
+      .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
+                                   e2[e1, roll = T, rollends=FALSE],
+                                   use.names = TRUE),
+                             Instrument, Date))
+      expr <- substitute(op(Value, Value.1))
+      .data[,Result := eval(expr)]
+      .data <- .data[, list(Instrument, Date, Result)]
+      setnames(.data, "Result", "Value")
+    }
+  }
+  
+  sfl <- substitute(op(e1, e2))
   return(as.indicator(.data, sfl=sfl))
 }
 

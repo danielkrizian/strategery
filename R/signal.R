@@ -1,7 +1,7 @@
 #' Verify visually how indicators and signals got evaluated
 #' 
 #' @export
-Check <- function(Instrument="SPX"
+Check <- function(instrument
                   , window=paste("2000",Sys.Date(),sep="::")
                   , plot=F){
   
@@ -15,20 +15,18 @@ Check <- function(Instrument="SPX"
     ))
   setkey(DT, Instrument, Date)
   
-  DT <- DT[Instrument==Instrument]
+  if(!missing(instrument))
+  DT <- DT[J(Instrument=instrument)]
+  DT <- DT[Date %between% range.ISO8601(window),]
   
   DT[, Title:=as.character(NA)]
   DT[, Annotation:=as.character(NA)]
   
-  for (n in c(indnames, rulenames)) {
-#     sig <- dat.signal(get(signame))
-#     DT <- DT[Date %between% range(sig$Date) ]
-#     DT[sig, Title:= paste(ifelse(is.na(Title),"", paste(Title, ",", sep=" "))
-#                           , signame), mult="first"]
-#     DT[sig, Annotation:= paste(ifelse(is.na(Annotation)
-#                                       ,"", paste(Annotation, ",", sep=" ")) 
-#                                , paste(signame, sig$Signal, sep=" = ")), mult="first"]
+  # add signals to annotations
+  for (n in rulenames) {
         ind <- as.indicator(get(n))
+        if(!missing(instrument))
+          ind <- ind[J(Instrument=instrument)]
         DT <- DT[Date %between% range(ind$Date) ]
         DT[ind, Title:= paste(ifelse(is.na(Title),"", paste(Title, ",", sep=" "))
                               , n), mult="first"]
@@ -36,9 +34,7 @@ Check <- function(Instrument="SPX"
                                           ,"", paste(Annotation, ",", sep=" ")) 
                                    , paste(n, ind$Signal, sep=" = ")), mult="first"]
   }
-  
-  DT <- DT[Date %between% range.ISO8601(window),]
-  
+    
   if(plot) {
     library(googleVis)
     gv <- gvisAnnotatedTimeLine(DT, datevar="Date",
