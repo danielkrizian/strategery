@@ -33,7 +33,7 @@ getOHLCV.yahoo <- function(ids, from="1900-01-01"){
 }
 
 getOHLCV.Bloomberg <-  function(ids, from="1900-01-01") {
-  # ids <- as.character(sqlQuery(ch,sql)$Bloomberg)
+  require(Rbbg)
   conn <- blpConnect()
   
   start.date <- format(as.Date(from),"%Y%m%d")
@@ -51,9 +51,45 @@ getOHLCV.Bloomberg <-  function(ids, from="1900-01-01") {
   
 }
 
+getData.Bloomberg <- function(ids, fields=c("PX_LAST"), from="1900-01-01") {
+  require(Rbbg)
+  conn <- blpConnect()
+  start.date <- format(as.Date(from),"%Y%m%d")
+  end.date <- NULL
+  .data <- bdh(conn, ids, fields, start.date, end.date
+                  , option_names=c(  "nonTradingDayFillOption"
+                                     , "nonTradingDayFillMethod")
+                  , option_values=c(  "ACTIVE_DAYS_ONLY"
+                                      , "NIL_VALUE"))
+  .data <- as.data.table(.data)
+  .data$Date <- as.IDate(.data$Date)
+  newnames <- if(length(ids)==1) c("Date", "Value") else c("Ticker", "Date", "Value")
+  setnames(.data, old=colnames(.data)
+           , new=newnames)
+  return(.data)
+}
+
 getOHLCV.rds <-  function(ids, from="1900-01-01") {
     loadDB(tables="OHLCV")
 }
+
+getInstrument.odbc <- function(ids, idfield,
+                               sql="SELECT * FROM Instrument WHERE @idfield IN @ids", 
+                               dsn=NULL, uid="", pwd="") {
+  
+  require(RODBC); require(data.table)
+  if(missing(ids)) {
+    sql <- sub(" WHERE @idfield IN @ids", "", sql)
+  }
+  else {
+    sql <- sub("@idfield", "Bloomberg", sql)
+    sql <- sub("@ids", paste0("('",paste0(ids, collapse="','"),"')"), sql)
+  }
+  channel <-odbcConnect(dsn, uid, pwd)
+  as.data.table(sqlQuery(channel, sql))
+}
+
+
 
 
 #' this is old search instrument function dependent on FinancialInstrument package
