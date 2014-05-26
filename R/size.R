@@ -1,26 +1,6 @@
 # Express size as shares, equitypct. 
 # Attach these objects to the rule object with %someaction% operator
 
-#' Position
-#' 
-#' Difference %position% vs. %rebalance%: rebalance doesn't act if the zero position 
-#' would have been crossed by the transaction or if the last position was zero. 
-#' `position` is agnostic to switching sides among long/neutral/short. Rebalance isn't.
-#' `allocation` is synonym to `position`
-#' @export
-`%position%` <- function(signal, size) {
-  structure(.Data=list(signal=signal, size=size, action="enter"), class="rule")
-}
-
-`%allocation%` <- function(signal, size) {
-  structure(.Data=list(signal=signal, size=size, action="enter"), class="rule")
-}
-
-`%rebalance%` <- function(signal, target) {}
-`%buy%` <- function(){}
-`%sell%` <- function(){}
-`%short%` <- function(){}
-`%cover%` <- function(){}
 # SetPositionSize(1, method="Shares")
 # Value (=1) - dollar value of size (as in previous versions)
 # PercentOfEquity (=2) - size expressed as percent of portfolio-level equity (size must be from ..100 (for regular accounts) or .1000 for margin accounts)

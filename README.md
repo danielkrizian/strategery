@@ -1,13 +1,31 @@
 strategery
 ==========
 
-Quant Strategy Specification, Backtesting, Optimization And Statistical Analysis Workflow
+## Quant Strategy Specification, Backtesting, Optimization And Statistical Analysis Workflow
+
+Strategy development process must be efficient! Large chunk of quants' time spent in data preparation, not in analysis. Decouple data processing and analytics. Minimizing time-to-value requires: 
+* idea has to be easily expressible and sharable with other people; machines need to understand it too (DSL)
+* variety and volume of available data 
+*	efficient queries (easy to write, quick response)
+* interactive ad-hoc analysis (R, visualization)
 
 1. Data management (in real time and for backtesting purposes)
-2. Signal generation system (create, buy and sell signals according to predefined strategies using quantitative methods)
-3. Portfolio and P&L tracking system
-4. Quantitative risk management system (simulate extreme values, limit orders to fit to VaR restrictions)
+2. Signal generation system (create, buy and sell signals according to predefined rules)
+3. Visualisation and statistical validation of rules
+4. Portfolio and P&L tracking system
 5. Routing and execution subsystem (execution trading algorithms, like TWAP, VWAP...)
+
+## Trading Rules
+A `rule` is a chain of operations that transform `rule`'s input (raw market or other data) into `rule`'s output: recommended market position (long/short/neutral).
+`rule` is defined by one or more mathematical and logical operators.
+A `rule` is said to generate a "signal" when the value of the output series (i.e. position series) changes.
+	
+    indicator1 = rawdata %transform% FUN()
+    ....
+    signal = indicator %binary.operator% threshold
+    position = signal %positionsizing% FUN()
+
+## Getting Started
 
 Install with:
 

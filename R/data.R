@@ -110,7 +110,7 @@ Universe <- function(..., load.path=file.path(system.file(package = "strategery"
     warning("Database path not provided, hence using 'strategery' package default database. 
             You can set the path via options(DBpath='your path') or provide it via 
             load.path argument." , immediate. = TRUE)
-#     options(DBpath=file.path(system.file(package = "strategery"), "data"))
+  # options(DBpath=file.path(system.file(package = "strategery"), "data"))
   }
      
   # is.null(getOption("DBpath")) & 
@@ -118,8 +118,9 @@ Universe <- function(..., load.path=file.path(system.file(package = "strategery"
   loadDB(tables=c("INSTRUMENT","OHLCV"), path=load.path)
   
   # subset universe
-  OHLCV <<- OHLCV[Instrument %in% instruments]
-
+  if(length(instruments))
+    OHLCV <<- OHLCV[Instrument %in% instruments]
+  
 }
 
 Cl <- function(x){

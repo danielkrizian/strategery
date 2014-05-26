@@ -50,9 +50,22 @@ Ops.sfl <- function(e1, e2) {
   return(structure(.Data, class="sfl"))
 }
 
+eval.sfl <- function(x) {
+  if(is.character(x))
+    x = as.language(parse(text=x))
+  eval(construct(deconstruct.sfl(x)))
+}
+
 deconstruct.sfl = function(expr, envir = parent.frame(), enclos = parent.frame()) {
+  if(expr[[1]]==quote(`%indicator%`)) {
+    # do not deconstruct 'Close' in OHLCV %indicator% Close
+    return(expr)
+  }
   lapply(expr, function(m) {
     if (is.call(m)) {
+      if(m[[1]]==quote(`%indicator%`)) {
+        return(m)
+      }
       if (m[[1]] == quote(eval)) eval(m[[2]], envir, enclos)
       else deconstruct.sfl(m, envir, enclos)
     } else if(is.name(m)){
@@ -62,8 +75,9 @@ deconstruct.sfl = function(expr, envir = parent.frame(), enclos = parent.frame()
         obj <- eval(m, envir=as.environment(.GlobalEnv))
         if(identical(class(obj),"sfl")) {
           m1 <- do.call(substitute, list(eval(m)))
-          if(m1[[1]]==quote(`%indicator%`))
+          if(m1[[1]]==quote(`%indicator%`)) {
             return(m1) # resolves clash Close <- indicator(Close, data=OHLCV)
+          }
           else 
             if(existsFunction(as.character(m))) deconstruct.sfl(m, envir, enclos) 
           else

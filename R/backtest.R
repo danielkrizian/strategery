@@ -3,43 +3,48 @@
 #' Backtest
 #' 
 #' @export
-Backtest <- function(...) {
+Backtest <- function() {
+  
+  extract.signal <- function(rule) {
+    s = rule$signal
+    if(is.sfl(s))
+      s = eval.sfl(s)
+    s$data[eval(as.name(s$.col)) == TRUE, c(s$.id, s$.time), with=FALSE]
+  }
+  
+  model.portfolio <- function(signal, sizing) {
+    if(is.numeric(sizing))
+    signal[, Pos:=sizing]
+  }
   
   # evaluate all rules into model portfolios and 
   # reconcile them into single model portfolio
-  
-#   applyPositionSignals <- function(portfolio, rules) {return(orders)}
-#   applyOrderSignals <- function(portfolio, rules) {return(orders)}
-  btportfolio <- new("Portfolio") # otherwise initial portfolio object could be passed in via dots 
-  mportfolio <- NULL
+  mp = NULL
   for(r in ls_rules()) {
-      p <- eval.rule(r)$portfolio
-     
-      mportfolio <- if (is.null(mportfolio)) p
-      else
-        .rbind.data.table(mportfolio, p, use.names=TRUE)
+    r = get(r)
+    s = extract.signal(r)
+    p = model.portfolio(s, r$size)
+    mp <- if (is.null(mp)) p
+    else
+      .rbind.data.table(mp, p, use.names=TRUE)
   }
-  setkey(mportfolio, Instrument, Date)
-    
-  mp <- new("Portfolio", assets=mportfolio)
   
-    # apply rules in an existing portfolio, generate orders from the position signal
+  setkeyv(mp, names(mp)[-length(names(mp))])
+  
+  # apply rules in an existing portfolio, generate orders from signals 
+  # signal = difference between existing and model portfolio
+  generate.orders <- function(model, portfolio=NULL) {
+    orders <- model[, OrderSize:=c(Pos[1],diff.default(Pos)), by=Instrument]
+    orders[OrderSize!=0][,Pos:=NULL]
+  }
+  
+  orders = generate.orders(mp)
 
-  orders <- mp$assets[, OrderSize:=c(ifelse(is.null(btportfolio),
-                                            Pos[1],
-                                            Pos[1] - btportfolio$position(Instrument))
-                              ,diff(Pos))
-               , by=Instrument]
-  orders <- orders[OrderSize!=0,][,list(Instrument, Date, OrderSize)]
-
+  initDate <- min(orders$Date)
+  portfolio <- data.table(Date=initDate, Instrument=unique(orders$Instrument), Pos=numeric(1), key="Date")
+  
   # execute orders -> book transactions
-  
-  execute <- function(orders, portfolio=NULL, market=OHLCV, algo="MOC") {
-    # Get portfolio data - if doesn't exist, initialize with date of first signal
-    if(is.null(portfolio)){
-      initDate <- min(orders$Date)
-      portfolio <- data.table(Date=initDate, Instrument=unique(orders$Instrument), Pos=numeric(1), key="Date")
-    }
+  execute <- function(orders, market=OHLCV, algo="MOC") {
 
     # execution algorithm: market on close
     # take the price on a date following immediately the order date 
@@ -58,131 +63,17 @@ Backtest <- function(...) {
     return(txns)
   }
   
-  txns <- execute(orders)
+  txns <- execute(orders, OHLCV, "MOC")
 
   # update portfolio positions with new transactions
+  # otherwise initial portfolio could be passed in via dots
+  btportfolio <- new("Portfolio")
   btportfolio$addTxns(txns)
   btportfolio$calcPL(market=OHLCV) #market=ohlc
-  
 
   a <- new("Account",portfolios=list(btportfolio))
-  summary <- list()
-  summary$returns <- summary.returns(a$returns(), byIns=F)
-  summary$trades <- summary.trades(a$tradePL(), by=NULL)
-  print(summary$returns)
-  print(summary$trades)
-  plot(a$performance())
-  return(list(account=a, summary=summary))
-}
-
-
-
-
-runLength <- function(x) {
-  (x) * unlist(lapply(rle(as.vector(x))$lengths, seq_len))
-}
-
-
-#' Number of bars since a condition has been met
-#' 
-#' @export
-BarsSince <- function(x) runLength(!x)
-
-#' Number of bars to the next TRUE value
-#' 
-#' @export
-BarsTo <- function(x) {
   
-  rle <- rle(x)
-  unlist(mapply(function(value, length)
-  {
-    if(value) rep(0, length) else seq(from=length, to=1)
-  }
-                , value=rle$values
-                , length=rle$lengths))
-}
-
-#' Remove excessive signals
-#' 
-#' returns 1 on the first occurence of "true" signal in x
-#' then returns 0 until y is true even if there are "true" signals in x
-#' @export
-ExRem <- function(x,y=!x) {
-  filter=FALSE
-  x[is.na(x)] <- FALSE
-  y[is.na(y)] <- FALSE
-  
-  for (i in 1:length(x)) {
-    if(filter) {
-      if(x[i]) x[i] <- FALSE
-      if(y[i]) filter <- FALSE
-    }
-    if(x[i]) filter <- TRUE
-  }
-  x
-}
-
-#' Remove excessive signals
-#' 
-#' works as a flip/flop device or "latch" (electronic/electric engineers will know what I mean
-#' returns 1 from the first occurence of TRUE signal in x
-#' until a TRUE occurs in y which resets the state back to zero
-#' unil next TRUE is detected in x...  
-#' this essentially reverts the process of ExRem - multiple signals are back again
-#' TEST : fill(c(1,1,0,1),c(1,0,0,0))
-#' @export
-Fill <- function(x,y=!x) {
-  x[is.na(x)] <- FALSE
-  y[is.na(y)] <- FALSE
-  latch <- FALSE
-  for (i in 1:length(x)) {
-    if(x[i]) latch <- TRUE
-    if(y[i]) latch <- FALSE
-    if(latch) x[i] <- TRUE
-    #     if(y[i]) latch <- FALSE # include also this line in a variant where x=T where y=T
-  }
-  x
-}
-
-#' Remove excessive signals
-#' 
-#' Gives a "1" or true on the day that x crosses above y Otherwise the result is "0".
-#' To find out when x crosses below y, use the formula Cross(y, x) 
-#' @export
-Cross <- function(x, y) {
-  above <- x > y
-  #below <- y < x
-  ExRem(above)
-}
-
-#' @export
-anticipate <- function(x, k=1, pad=NA) {
-  k <- abs(k)
-  c( tail(x, -k), rep(pad, k) )
-}
-
-#' @export
-delay <- function(x, k=1, pad=NA) {
-  k <- abs(k)
-  c( rep(pad, k) , head(x, -k) )
-}
-
-shift <- function(x, k) {
-  if (!is.vector(x)) 
-    stop('x must be a vector')
-  if (!is.numeric(k))
-    stop('k must be numeric')
-  if (1 != length(k))
-    stop('k must be a single number')
-  if(k>0) {
-    return( c(rep(NA, k), x)[1 : length(x)] )
-  }
-  else if(k<0) {
-    return( c(x[(-k+1):length(x)], rep(NA, -k)) )
-  }
-  else if(k==0)
-    return(x)
-  
+  return(a)
 }
 
 #' Some Title

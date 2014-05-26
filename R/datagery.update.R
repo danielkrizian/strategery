@@ -91,4 +91,11 @@ updateDB <- function(new, path=getOption("DBpath"), table, envir=.GlobalEnv, rel
     assign(table, new, envir=envir)
 }
 
+editDB <- function(x) {
+  out <- edit(x)
+  out <- data.table(out, key=key(x))
+  assign(deparse(substitute(x)), out, envir = .GlobalEnv)
+  saveDB(deparse(substitute(x)))
+}
+
 

@@ -1,21 +1,28 @@
-
+# FEATURES: 
+# signal based on comparison of two indicators
+# equitypct position sizing
+# rebalance
+require(strategery);   require(rChartsDygraph)
+options(lazy.indicators=T)
+options(param.indicators=T)
 newStrategy("sma")
 
-Universe(c("VTI", "VEU", "IEF", "VNQ", "DBC"))
+Universe("VTI", "VEU", "IEF", "VNQ", "DBC") # load.path="G:/Database"
 
-Close <- indicator(col="Close", input=OHLCV)
-SMA <- indicator( fun=SMA, input=OHLCV)
+Close = indicator(Close, data=OHLCV)
 
-Long <- Close>SMA(Close, 200) %position% equitypct("equal")
-Neutral <- Close<=SMA(Close, 200) %position% equitypct(0)
-Rebalance <- EOM==TRUE %rebalance% equitypct(20) # rebalance rule: each month, rebalance to 20% equity target
+nsma = 200
+SMA = indicator( SMA(Close, nsma), data=OHLCV)
+
+Long = (Close>SMA) %position% shares(1) # equitypct("equal")
+Neutral = (Close<=SMA) %position% shares(0) # equitypct(0)
+
+# Rebalance <- (EOM==TRUE) %rebalance% equitypct(20) # rebalance rule: each month, rebalance to 20% equity target
+
+Visualize(ids="IEF")
 
 Backtest()
 
-# FEATURES: 
-# Universe accepts convenience Universe("VTI", "VEU", "IEF", "VNQ", "DBC")
-# data for "VTI", "VEU", "IEF", "VNQ", "DBC"
-# rewrite indicator() to postpone parameters until signal
-# signal based on comparison of two indicators
-# equitypct
-# rebalance
+
+
+

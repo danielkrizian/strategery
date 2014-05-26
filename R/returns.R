@@ -1,174 +1,169 @@
-# #' Constructor for class 'returns' - time series of returns
-# #' 
-# returns <- function(x, ...) {
-#   UseMethod("returns",x)
-# }
-# 
-# returns.default <- function(x, interval) {
-#   p <- prices(x, interval)
-#   return(as.returns(p, interval))
-# }
-
-# #' Convert object to a class time series of returns
-# #' 
-# #' @param x data.table. TODO: xts
-# #' @param interval character vector as one of c("monthly", "regular","MTD", NA, ...).
-# #' Sets the interval property of returns object. If missing, the function will attempt
-# #' to discern the interval from the x object.
-# as.returns.default <- function(x, interval=c("days","weeks","months","years")) {
-#   
-#   columnsInput <- c("Name", "Date", "Value")
-#   columnsOutput <- c("Name", "Date", "Value")
-#   .key <- c("Name","Date")
-#   
-#   ans <- as.data.table(x)
-#   
-#   #Interval column exists
-#   #Interval homogeneous - delete it, to attr
-#   #interval provided
-#   
-#   # add Interval column, if missing
-#   if("Interval" %in% colnames(x)) {
-#     #extract interval from data, if homogenious
-#     # see if Interval is homogeneous across the series
-#     data.interval <- unique(x$Interval)
-#     if(length(data.interval)==1)
-#       data.interval <- as.character(data.interval)
-#     else {
-#       stop("Interval is heterogenious across time series. Check your data")
-#       # TODO: Add support for heterogenious intervals (via retaining Interval column)
-#     }
-#   }
-#   else data.interval <- NA
-#   
-#   ans[, Date := as.IDate(Date)]
-#   ans <- ans[, columnsInput, with=FALSE ]  # setcolorder(ans, newNames) probably not needed
-#   setnames(ans, columnsOutput)
-#   
-#   setkeyv(ans, .key)
-#   setattr(ans, "class", c(attr(ans,"class"), "returns")) 
-#   # returns should be first, but problems with RStudio data viewer
-#   setattr(ans, "interval", data.interval) # c("monthly","regular","MTD")
-#   
-#   #ans <- structure(ans, interval=interval, class=c("returns",attr(ans,"class")))
-#   
-#   if(!missing(interval)) {
-#     ans <- to.interval(ans, to=interval)
-#   }
-#   return(ans)
-# }
-
-#' Convert (irregular) returns to regular intervals of chosen periodicity
+#' Construct returns object
 #' 
-#' Some description
-#' 
-#' @param x A data.table with columns Instrument, Date, Return
-#' @param fill How many missing bars to fill/roll backwards and forwards?
-#'             If not FALSE, a vector of length 2 - fill=c(backwards, forwards)
-#'        E.g. in case of irregularly reported weekly data, fill=c(1, 4) will 
-#'        roll Mondays to preceding Sundays (weekly endpoints) and 
-#'        Wednesdays to the following Sundays
-#' @param to Set interval of the resulting time series.
-#' @param eow.fri Mark weekly endpoints as Fridays in the output. 
-#'                 Internally, weekly endpoints are by default Sundays
-#'                 
-#' Main use is to convert from MTD type returns to periodic returns
-#' Create Price index
-#' 
-#' Add Base Index/Price (for MTD version)
-#' Make daily timeframe
-#' Compress timeframe to lower interval
-#' Roll price index to the period ends.
-#' Set periodicity of the resulting time series.
-#' TODO: accomodate other input types than MTD
-to.interval.returns <- function(
-  x
-  , to
-  , fill=if(to=="weeks") c(1,4) else if(to=="months") c(3,3) else FALSE
-  , eow.fri=T
-){
-  
-  # required because rbindlist(list(x,bases)) drops the class info
-  original.class <- attr(x,"class")
-  
-  if("MTD" %in% attr(x,"interval")) {
-    if(to %in% c("days","weeks"))
-      x[, Equity:=value.index(Value
-                               , todate=endpoints(Date, on="months")
-                               , na.fill=NA), by=Name]
-    if(to=="months") {
-      # take last record of each month
-      x[,c("Year","Month"):=list(year(Date), month(Date))]
-      x <- x[, .SD[.N], by=list(Name,Year,Month)]
-      x[,c("Year","Month"):=list(NULL,NULL)]
-      setattr(x,"interval","months")
-      return(x)
-    }
-  }
+#' @rdname indicator
+#' @export indicator
+returns <- function(data, trans, col) {
+  if(missing(trans))
+    strans <- as.name(col)
   else
-    x[, Equity:=value.index(Value, todate=FALSE, na.fill=NA), by=Name]
-  #add price index base
-  base <- getOption("eq.base")
-  if(is.null(base)) 
-    base <- 100
-  bases <- x[,list("Date"=round(first(Date), "months") - 1
-                   , "Value"=as.numeric(NA)
-                   , "Equity"=base)
-             , by=Name]
-  x <- rbindlist(list(x,bases))
-  setkey(x,"Name","Date")
-  
-  # Create calendar timeframe (daily), start-end by Instrument
-  ranges <- x[,list("From"=first(Date)
-                    , "To"=last(Date)), keyby=Name]
-  tf <- CJ(Name=ranges$Name
-           , Date=Calendar()[,Date])[
-             , key=c("Name"
-                     , "Date")][ranges][Date>=From & Date<=To][,list(Name
-                                                                     , Date)]
-  
-  # Accomodate incomplete intraperiod data. 
-  # Fill missing observations by carrying observations backwards and forwards
-  if(length(fill)==2)
-    x <- x[tf, roll=fill[2]][, Equity:=ifelse(is.na(Equity)
-                                              , x[tf, roll=-abs(fill[1])]$Equity
-                                              , Equity)]
-  
-  # Compress data timeframe to the desired interval
-  setkey(tf,"Date")
-  tf.periodic <- tf[Calendar()[endpoints(Date, on=to),list(Date)]
-                    , nomatch=0]
-  setkey(tf.periodic,"Name","Date")
-  x <- x[tf.periodic]
-  
-  # Add returns column
-  x[, Value:=roc(Equity, ,na.pad=TRUE, base.incl=TRUE), by=Name]
-  x[, Equity:=NULL]
-  
-  # Adjust dates to Fridays instead of Sundays
-  if(eow.fri & to=="weeks")
-    x[,Date:=Date - 2]
-  
-  setattr(x,"class",original.class)
-  setattr(x, "interval", to) # c("monthly","regular","MTD")
-  # required because rbindlist(list(x,bases)) drops the class info
-  return(x)
+    strans <- substitute(trans)
+    r = Returns$new(data=data, trans=strans)
+    return(r$eval())
 }
 
-as.prices.returns <- function(returns, interval="MTD") {
+
+Returns.calendar <- function(what=c("MTD", "YTD", "3M", "6M", "years")){
+
+}
+
+Returns.plot <- function(drawdowns=T) {
+  datacols=c(.id, .time, .self$index)
+  if(drawdowns)
+    datacols = c(datacols, .self$drawdowns)
+  x = data[, datacols, with=FALSE]
+  x = data.table:::melt.data.table(x, id.vars=c("Instrument","Date"))
   
-  returns[, Value:=value.index(Value
-                          , todate=endpoints(Date, on="months")
-                          , na.fill=NA), by=Name]
-  returns <- returns[,list(Name,Date,Value)]
-#add price index base
-base <- getOption("eq.base")
-if(is.null(base)) 
-  base <- 100
-bases <- returns[,list("Date"=round(first(Date), "months") - 1
-                 , "Value"=base)
-           , by=Name]
-prices <- rbindlist(list(returns,bases))
-setkey(prices,"Name","Date")
-    return(prices)
+  p <- ggplot(x, aes(x=Date, y=value, colour=Instrument)) + geom_line() +
+    #   scale_y_continuous(trans=log10_trans())
+    # p + 
+    facet_grid(variable ~ ., scales="free_y") +
+    scale_x_date(breaks=pretty_breaks(n=10), minor_breaks="year", labels=date_format("%Y")) + # scale_x_date(breaks=number_ticks(7), labels=date_format("%Y"))
+    scale_y_continuous(labels = percent_format()) +
+    coord_trans(y="log1p") + 
+    #
+    theme_economist_white(gray_bg=FALSE) + 
+    scale_colour_economist() +
+    xlab("") + ylab("Cumulative Performance (Log scale)")
+  
+  g = ggplotGrob(p)
+  panels = which(sapply(g[["heights"]], "attr", "unit") == "null")
+  g[["heights"]][panels] = list(unit(12, "cm"), unit(3, "cm"))
+  dev.off()
+  grid.draw(g)
+}
+
+Returns.summary <- function(weights=NULL) {
+    
+  ann=252
+  compound=T
+  Return = as.name(.col)
+  
+  by= if(is.null(weights)) "Instrument" else NULL
+  
+  data[, Equity:= cumprod(1+eval(Return)), by=Instrument]
+  data[, Drawdown:= Equity / cummax(Equity) - 1, by=Instrument]
+  dd <- data[, summary.drawdowns(Drawdown, Date), by=Instrument]
+  
+  return(data[,list(
+    "CAGR"=annualized(eval(Return), ann=ann, compound=compound)
+    , "Total Return"=cumulative(eval(Return), compound=compound)
+    , "Sharpe"=sharpe(eval(Return), Rf=0, ann=ann)
+    , "Volatility"=sigma(eval(Return), ann=ann)
+    , "R2"=r2(cumprod(1+eval(Return)))
+    , "DVR"= dvr(eval(Return), Rf=0, ann=ann) # dvr(Return)
+    , "MAR" = mar(eval(Return), ann=ann)
+    , "Max Drawdown"= maxdd(eval(Return))
+    , "Average Drawdown"= mean(dd$Depth) #avgdd(Return)
+    , "Average Drawdown Length" = mean(dd$Length)
+  )
+  , by=by])
+}
+
+#' @include Indicator.R
+Returns = setRefClass('Returns', contains="Indicator",
+                      fields= list(.dd = "character",
+                                   .vindex = "character",
+                                   benchmark="character",
+                                   drawdowns=function(col){
+                                     if(missing(col)){
+                                       if(!length(.dd)){
+                                         if(length(.vindex)) {
+                                           Index = as.name(.vindex)
+                                           data[, Drawdown:=Index / cummax(Index) - 1
+                                                , by=Instrument]
+                                         } else {
+                                           Return = as.name(.col)
+                                           data[,Drawdown:=dd(eval(Return)), by=Instrument]
+                                         }
+                                         .dd <<- "Drawdown"
+                                       }
+                                       return(.dd)
+                                     } else {
+                                       .dd <<- col
+                                     }
+                                   },
+                                   index=function(col){
+                                     if(missing(col)){
+                                       if(!length(.vindex)){
+                                         Return = as.name(.col)
+                                         data[,Index:=value.index(eval(Return)), by=Instrument]
+                                         .vindex <<- "Index"
+                                       }
+                                       return(.vindex)
+                                     } else {
+                                       .vindex <<- col
+                                     }
+                                   }),
+                      methods = list(calendar=Returns.calendar,
+                                     plot=Returns.plot,
+                                     summary=Returns.summary))
+
+
+
+
+###### To Delete ####################################
+
+summary.returns <- function(x, byIns=ifelse(is.null(weights),T,F), byPer=F, weights=NULL) {
+  
+  
+  if(!is.na(match(byPer, c("months", "years", T))))
+    return(summary.returns.by.period(x=x, byIns=byIns, weights=weights))
+  
+  ann=252
+  compound=T
+  
+  by= if(byIns) "Instrument" else NULL
+  
+  
+  x[, Equity:= cumprod(1+Return), by=Instrument]
+  x[, Drawdown:= Equity / cummax(Equity) - 1, by=Instrument]
+  drawdowns <- x[, summary.drawdowns(Drawdown, Date), by=Instrument]
+  
+  return(x[,list(
+    "CAGR"=annualized(Return, ann=ann, compound=compound)
+    , "Total Return"=cumulative(Return, compound=compound)
+    , "Sharpe"=sharpe(Return, Rf=0, ann=ann)
+    , "Volatility"=sigma(Return, ann=ann)
+    , "R2"=r2(cumprod(1+Return))
+    , "DVR"= dvr(Return, Rf=0, ann=ann) # dvr(Return)
+    , "MAR" = mar(Return, ann=ann)
+    , "Max Drawdown"= maxdd(Return)
+    , "Average Drawdown"= mean(drawdowns$Depth) #avgdd(Return)
+    , "Average Drawdown Length" = mean(drawdowns$Length)
+  )
+  , by=by])
+}
+
+plot.returns <- function(x) {
+  require(ggplot2);  require(ggthemes); require(grid); require(scales)
+  x <- x[,list(Instrument,Date,Equity, Drawdown)]
+  x <- data.table:::melt.data.table(x, id.vars=c("Instrument","Date"))
+  
+  p <- ggplot(x, aes(x=Date, y=value, colour=Instrument)) + geom_line() +
+    #   scale_y_continuous(trans=log10_trans())
+    # p + 
+    facet_grid(variable ~ ., scales="free_y") +
+    scale_x_date(breaks=pretty_breaks(n=10), minor_breaks="year", labels=date_format("%Y")) + # scale_x_date(breaks=number_ticks(7), labels=date_format("%Y"))
+    scale_y_continuous(labels = percent_format()) +
+    coord_trans(y="log1p") + 
+    #
+    theme_economist_white(gray_bg=FALSE) + 
+    scale_colour_economist() +
+    xlab("") + ylab("Cumulative Performance (Log scale)")
+  
+  g = ggplotGrob(p)
+  panels = which(sapply(g[["heights"]], "attr", "unit") == "null")
+  g[["heights"]][panels] = list(unit(12, "cm"), unit(3, "cm"))
+  dev.off()
+  grid.draw(g)
 }
