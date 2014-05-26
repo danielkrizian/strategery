@@ -32,7 +32,7 @@ Install with:
     library("devtools")
     install_github("strategery", "danielkrizian")
 
-See `examples` folder for use cases like:
+See `demo` folder for use cases like:
 
     require(strategery)
     
