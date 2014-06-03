@@ -23,14 +23,7 @@ get.holidays <- function(exchange, years=1800:2015) {
 
 # CALENDAR ----------------------------------------------------------------
 
-#' Construct an Exchange-specific calendar of trading (business) days
-#' 
-#' Table of exchange definitions -  contains trading bars
-#' Warning: Saturdays before 1952-09-29 not yet accomodated
-#' @source NYSE Holidays: http://www.nyse.com/pdfs/closings.pdf
-#' @source NYSE Trading Hours (Saturdays before 1952-09-29): http://www.nyse.com/pdfs/historical_trading_hours.pdf
-#' @export
-calendar <- function (exchange=NULL, years=1800:2015, from, to, QuantLib.safe=TRUE) {
+.calendar <- function (exchange=NULL, years=1800:2015, from, to, QuantLib.safe=TRUE) {
   
   # if(QuantLib.safe) # RQuantLib crashes when from < "1901-01-01"
   require(timeDate)
@@ -53,29 +46,25 @@ calendar <- function (exchange=NULL, years=1800:2015, from, to, QuantLib.safe=TR
   return(noholw)
 }
 
-
-
-
-#' Construct bars frame for each symbol
+#' Construct an Exchange-specific calendar of trading (business) days
 #' 
-#' If exchange = NULL - calendar days as opposed to trading days
+#' Table of exchange definitions -  contains trading bars
+#' Warning: Saturdays before 1952-09-29 not yet accomodated
+#' @param trading logical. Trading days or all?
+#' @source NYSE Holidays: http://www.nyse.com/pdfs/closings.pdf
+#' @source NYSE Trading Hours (Saturdays before 1952-09-29): http://www.nyse.com/pdfs/historical_trading_hours.pdf
 #' @export
-time.frame <- function(symbols, bds=TRUE) {
-  if(bds){
-    #Exchange, Instrument data.table
-    IE <- INSTRUMENT[InstrumentID==symbols][,list(InstrumentID,Exchange)]
+Calendar <- function(trading=TRUE, holidays=F, instruments=unique(OHLCV$Instrument)) {
+  if(!missing(trading) & trading){
+    IE <- INSTRUMENT[InstrumentID==instruments][,list(InstrumentID,Exchange)]
     setnames(IE, "InstrumentID", "Instrument")
-    #     setkey(IE,Exchange)
-    #     ED <- rbindlist(lapply(unique(IE)$Exchange,
-    #                            function(e) data.table(Exchange=e
-    #                                                   , Date=calendar(e))))
-    #Exchange, Date data.table
-    #     setkey(ED, Exchange)
-    
-    #     ID <- IE[ED][,list(Instrument, Date)] # Instrument, Date data.table
-    ID <- IE[,data.table(Date=calendar(Exchange)), by=Instrument]
+    ID <- IE[,data.table(Date=.calendar(Exchange)), by=Instrument]
+  } else if(!missing(holidays) & holidays) {
+    IE <- INSTRUMENT[InstrumentID==instruments][,list(InstrumentID,Exchange)]
+    setnames(IE, "InstrumentID", "Instrument")
+    ID <- IE[,data.table(Date=get.holidays(Exchange)), by=Instrument]
   } else {
-    ID <- CJ(Instrument=symbols, Date=calendar())
+    ID <- CJ(Instrument=instruments, Date=.calendar())
   }
   setkey(ID, Instrument, Date)
   return(ID)
@@ -118,9 +107,10 @@ Universe <- function(..., load.path=file.path(system.file(package = "strategery"
   loadDB(tables=c("INSTRUMENT","OHLCV"), path=load.path)
   
   # subset universe
-  if(length(instruments))
+  if(length(instruments)) {
     OHLCV <<- OHLCV[Instrument %in% instruments]
-  
+    INSTRUMENT <<- INSTRUMENT[InstrumentID %in% instruments]
+  }
 }
 
 Cl <- function(x){

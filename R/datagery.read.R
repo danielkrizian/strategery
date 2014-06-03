@@ -1,15 +1,15 @@
 ##### src/id/var/date/value ######
 
 getData <- function(pattern, src, ids, fields, 
-                    window, start, end, 
+                    time, 
                     FUN, online=F, ...) {
   args = match.call()
   if(!online) {
     FUN = "datagery"
     args = list(ids=datageryIds(lookup=args$ids, src=args$src),
                 fields = args$fields,
-                start_date = args$start,
-                end_date = args$end)
+                start_date = args$time[1],
+                end_date = args$time[2])
   }
   
   do.call(FUN, args=args)
@@ -26,14 +26,80 @@ datageryIds <- function(lookup, src) {
   }
 }
 
-datagery <- function(ids, fields, start_date, end_date) {
-  if(fields[1] %in% c("PX","Price")){
-    if(!exists("PX", .GlobalEnv))
-      loadDB("PX")
-    out = PX[J(Ticker=ids)]
-    setnames(out, "Value", fields[1])
-    return(out)
-  }
+
+datagery <- function(ids, fields=c("prices","returns"), time) {
+  src.prefix = "datagery"
+  args = as.list(match.call()[-1])
+  flds= match.arg(fields)
+  FUN = paste(src.prefix, flds, sep = ".")
+  args$fields <- NULL
+  do.call(FUN, args)
+}
+
+datagery.prices <- function(ids, time) {
+  if(!exists("PX", .GlobalEnv))
+    loadDB("PX")
+  out = PX[J(Ticker=ids)]
+  setnames(out, "Value", "Price")
+  return(out)
+}
+
+datagery.returns <- function(ids, time) {
+  if(!exists("R", .GlobalEnv))
+    loadDB("R")
+  out = R[FundName %like% ids]
+  setnames(out, "Value", "Return")
+  return(out)
+}
+
+
+#get object satisfying criteria
+datagery.objects <- function(criteria=list(class="fund", 
+                                           connects.to="",
+                                           has.edge="")) {
+  if(identical(criteria)
+}
+
+edhec <- function(ids, fields="returns", time, ...) {
+  src.prefix = "edhec"
+  args = as.list(match.call()[-1])
+  flds= match.arg(fields)
+  FUN = paste(src.prefix, flds, sep = ".")
+  args$fields <- NULL
+  do.call(FUN, args)
+}
+
+edhec.returns <- function(ids, time, username, pwd) {
+  require(RCurl)
+  loginurl = "http://www.edhec-risk.com/login_form"
+  dataurl  = "http://www.edhec-risk.com/indexes/pure_style/data/table/history.csv"
+  pars=list(
+    "__ac_name"=username,
+    "__ac_password"=pwd
+  )
+  agent="Mozilla/5.0" #or whatever 
+  curl = getCurlHandle()
+  curlSetOpt(cookiejar="cookies.txt",  useragent = agent, followlocation = TRUE, curl=curl)
+  html=postForm(loginurl, .params = pars, curl=curl)
+  html=getURLContent(dataurl, curl=curl)
+  
+  rm(curl)
+  
+  out = read.csv(textConnection(html), sep=";", check.names=F)
+  out[, -1] = apply(out[, -1], 2, 
+                    FUN = function(x) as.numeric(gsub("%", "", x, fixed=TRUE)))
+  out[, 1] = as.Date(out[, 1], format = "%d/%M/%Y")
+  out = data.table:::melt.data.table(as.data.table(out), 
+                                     id.vars = "date", variable.name="ID",
+                                     value.name="Return")
+  out[, Return:=Return/100]
+  setnames(out, "date", "Date")
+  setcolorder(out, c("ID", "Date", "Return"))
+  setkey(out, ID, Date)
+  if(!missing(ids))
+    out = out[J(ID=ids)]
+  
+  return(out)
 }
 
 #' Read rds files, assign to the environment.

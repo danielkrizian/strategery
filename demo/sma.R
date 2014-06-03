@@ -2,9 +2,11 @@
 # signal based on comparison of two indicators
 # equitypct position sizing
 # rebalance
-require(strategery);   require(rChartsDygraph)
+require(strategery);   require(rChartsDygraphs)
 options(lazy.indicators=T)
 options(param.indicators=T)
+
+
 newStrategy("sma")
 
 Universe("VTI", "VEU", "IEF", "VNQ", "DBC") # load.path="G:/Database"

@@ -3,19 +3,9 @@ ls_rules <- function (envir=.GlobalEnv) {
   all[sapply(all, function(x) is.rule(get(x)))]
 }
 
-print.rule <- function(rule) {
-  print(eval.rule(rule)$portfolio)
-} 
-
-dat <-  function(x, ...) {
-  UseMethod("dat", x)
-}
-
-#' @method dat rule
-#' @S3method dat rule
-dat.rule <- function(rule) {
-  eval.rule(rule)$portfolio
-}
+# print.rule <- function(rule) {
+#   print(eval.rule(rule)$portfolio)
+# }
 
 is.rule <- function(x) {
   inherits(x, "rule")

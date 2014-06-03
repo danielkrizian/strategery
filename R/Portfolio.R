@@ -37,7 +37,6 @@ Portfolio.calcPL <- function(market=OHLCV){
   START <- positions[,list(First=min(Date)), by=Instrument]
   bounded.market <- market[START][Date>=First][,First:=NULL]
   setkey(bounded.market, Instrument, Date)
-  
   marked.portfolio <- positions[bounded.market, roll=TRUE][, Value:=Pos * Price]
   # handle missing TxnValue - fill zeroes alternative
   cols <- c("Instrument", "Date", "Pos", "Price", "Value")

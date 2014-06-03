@@ -123,14 +123,20 @@ is.evaled <- function(x) {
 Ops.Indicator <- function(e1, e2) {
   op <- as.name(.Generic)
   if(is.numeric(e2) | is.logical(e2)) {
-    expr <- substitute(op(Value, e2))
-    if(as.character(op) %in% c("==", "!=", "<", "<=", ">=", ">")) {
-      cl <- class(e1$Value)
-      .data <- e1[,Value:=as(eval(expr), cl), by=Instrument]
-      .data[,Value:=as.logical(Value)]
-      # because assigning directly Value:=eval(expr) throws error: 
-      # "Type of RHS ('logical') must match LHS."
-    }
+#     expr <- substitute(op(Value, e2))
+#     if(as.character(op) %in% c("==", "!=", "<", "<=", ">=", ">")) {
+#       cl <- class(e1$Value)
+#       .data <- e1[,Value:=as(eval(expr), cl), by=Instrument]
+#       .data[,Value:=as.logical(Value)]
+#       # because assigning directly Value:=eval(expr) throws error: 
+#       # "Type of RHS ('logical') must match LHS."
+#     }
+    e1$eval()
+    e1trans <- e1$trans
+    trans <- substitute(op(e1trans, e2))
+    out <- Indicator(data=e1$data, trans=trans)
+    out$eval()
+    return(out)
   }
   else if(inherits(e2,"Indicator")) {
     if(address(e1$data)==address(e2$data)) {
@@ -139,13 +145,10 @@ Ops.Indicator <- function(e1, e2) {
       e1trans <- e1$trans
       e2trans <- e2$trans
       trans <- substitute(op(e1trans, e2trans))
-      
       out <- Indicator(data=e1$data, trans=trans)
       out$eval()
       return(out)
     }
-    
-    
     
     if(as.character(op) %in% c("&", "|")) {
       .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
@@ -176,9 +179,66 @@ Ops.Indicator <- function(e1, e2) {
       setnames(.data, "Result", "Value")
     }
   }
-  
-  
   return()
+}
+
+#' @method %AND% Indicator
+#' @S3method %AND% Indicator
+`%AND%.Indicator` <- function(e1, e2) {
+  # TODO: merge into `Ops.Indicator` as (e1 & e2)
+  op <- as.name("&")
+  e1$eval()
+  e2$eval()
+  e1trans <- e1$trans
+  e2trans <- e2$trans
+  trans <- substitute(op(e1trans, e2trans))
+  
+  if(address(e1$data)==address(e2$data)) {
+    out <- Indicator(data=e1$data, trans=trans)
+    out$eval()
+    return(out)
+  } else {
+    fullouter <- unique(setkey(rbind(e1$data[e2$data, roll = T, rollends=FALSE],
+                                  e2$data[e1$data, roll = T, rollends=FALSE],
+                                  use.names = TRUE),
+                            Instrument, Date))
+    # TODO: remove "Instrument, Date" name dependency
+    # see also this for single-columned key:
+    # http://stackoverflow.com/questions/12773822/why-does-xy-join-of-data-tables-not-allow-a-full-outer-join-or-a-left-join
+    .col = paste0(e1$.col," & ", e2$.col)
+    fullouter[, c(.col):= get(e1$.col) & get(e2$.col)]
+    out <- Indicator(data=fullouter, trans=trans, col=.col)
+    return(out)
+  }
+}
+
+#' @method %OR% Indicator
+#' @S3method %OR% Indicator
+`%OR%.Indicator` <- function(e1, e2) {
+  # TODO: merge into `Ops.Indicator` as (e1 | e2)
+  op <- as.name("|")
+  e1$eval()
+  e2$eval()
+  e1trans <- e1$trans
+  e2trans <- e2$trans
+  trans <- substitute(op(e1trans, e2trans))
+  if(address(e1$data)==address(e2$data)) {
+    out <- Indicator(data=e1$data, trans=trans)
+    out$eval()
+    return(out)
+  } else {
+    fullouter <- unique(setkey(rbind(e1$data[e2$data, roll = T, rollends=FALSE],
+                                     e2$data[e1$data, roll = T, rollends=FALSE],
+                                     use.names = TRUE),
+                               Instrument, Date))
+    # TODO: remove "Instrument, Date" name dependency
+    # see also this for single-columned key:
+    # http://stackoverflow.com/questions/12773822/why-does-xy-join-of-data-tables-not-allow-a-full-outer-join-or-a-left-join
+    .col = paste0(e1$.col," | ", e2$.col)
+    fullouter[, c(.col):= get(e1$.col) | get(e2$.col)]
+    out <- Indicator(data=fullouter, trans=trans, col=.col)
+    return(out)
+  }
 }
 
 
@@ -196,9 +256,9 @@ Indicator.countIds <- function(){
 Indicator.eval = function(){
   if(length(trans)>1) {
     label = if(getOption("param.indicators"))
-      deparse(construct(eval_params(trans)))
+      deparse(construct(eval_params(trans)), width.cutoff=500)
     else
-      deparse(trans)
+      deparse(trans, width.cutoff=500)
     .col <<- label
     data[, `:=`(substitute(label), eval(trans)), by=.id]
   }

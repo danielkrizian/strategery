@@ -1,17 +1,18 @@
-require(strategery)
+require(strategery);   require(rChartsDygraphs)
+options(lazy.indicators=T)
+options(param.indicators=T)
 
 ##### Turn Of The Month ######
 
 # This strategy goes long the S&P 500 index around the turn of each month 
 # (last trading day and first three trading days). 
 # Momentum filter applied, i.e. price must be greater than 20 days ago.
-newStrategy("tfh")
+newStrategy("tom")
 
-# select universe
-symbols <- "SPX"
-Universe(symbols) # prepare ohlc data frame
+Universe("SPX") # prepare ohlcv data
 
-cal <- time.frame(symbols, bds=TRUE) # trading days calendar
+# trading days calendar of the universe instruments 
+CAL <- Calendar(trading=T) # slow part is timeDate::holidayNYSE
 
 TurnOfMonth <- function(x, last=1, first=3, advance=2) {
   eom <-endpoints(x, on="months") # end of month
@@ -24,18 +25,16 @@ nmom <- 20
 last.days <- 1
 first.days <- 3
 
-#Close.Prices <- indicator(Close, input=OHLCV)
-TOM <- indicator( TurnOfMonth(Date, last.days, first.days, advance=2), data=cal)
-mom <- indicator( momentum(Close, nmom), data=OHLCV)
+Close = indicator( Close, data=OHLCV)
+TOM = indicator( TurnOfMonth(Date, last.days, first.days, advance=2), data=CAL)
+mom = indicator( momentum(Close, nmom), data=OHLCV)
 
 Long <- (mom>0) %AND% (TOM==TRUE) %position% shares(1)
 Neutral <- (mom<=0) %OR% (TOM!=TRUE) %position% shares(0)
 
-Check(plot=F, window="1980")
+Visualize()
 
-options("warn"=-1)
-
-bt <- Backtest()
+Backtest()
 
 saveStrategy()
 
@@ -69,9 +68,9 @@ FomcDay <- function(x, before=2 ) {
   data(fomc)
   fomcDates <- as.Date(as.character(unlist(fomc)))
   fomcDates <- fomcDates[fomcDates>=as.Date("1980-01-01")] # remove unverified data
+  # exclude same-day announcements (see study)
   fomcDates <- fomcDates[!fomcDates %in% as.Date(c("1968-12-17","1979-09-18",
                                                    "1979-10-06", "1990-12-18","1996-03-26"))] 
-  # exclude same-day announcements (see study)
   isFomc <- x %in% fomcDates
   beforeFomc <- c(tail(isFomc, -before), rep(FALSE, before))
   
@@ -80,7 +79,7 @@ FomcDay <- function(x, before=2 ) {
 
 beforeFOMC <- 2
 
-FOMC <- indicator( FomcDay(Date, before=beforeFOMC), data=cal)
+FOMC <- indicator( FomcDay(Date, before=beforeFOMC), data=CAL)
 
 Long <- (FOMC==TRUE) %position% shares(1)
 Neutral <- (FOMC!=TRUE) %position% shares(0)
@@ -98,10 +97,15 @@ newStrategy("holiday")
 Universe("SPX")
 require(timeDate)
 
+FULLCAL <- Calendar(trading=T)
+
+Holiday <- function(x, before=2) {
+  as.IDate(holidayNYSE(1800:2015))
+}
+
 # on the OHLCV frame, mark preholidays as TRUE, others as FALSE
-HOL <- CJ(Instrument=unique(OHLCV$Instrument), 
-          Date=as.IDate(holidayNYSE(1800:2015))) [,PreHoliday:=TRUE]
-PREHOL <- HOL[OHLCV[,list(Instrument,Date)],roll=-1][is.na(PreHoliday),PreHoliday:=FALSE]
+HOL <- Calendar(holidays=T)[,PreHoliday:=TRUE] # slow part is timeDate::holidayNYSE
+PREHOL <- HOL[CAL[,list(Instrument,Date)],roll=-1][is.na(PreHoliday),PreHoliday:=FALSE]
 
 advanceBarsForSig <- 2 # anticipate signal n days in advance
 preholiday <- indicator( anticipate(PreHoliday, advanceBarsForSig, pad=F), data=PREHOL)
@@ -109,6 +113,4 @@ preholiday <- indicator( anticipate(PreHoliday, advanceBarsForSig, pad=F), data=
 Long <- (preholiday==TRUE) %position% shares(1)
 Neutral <- (preholiday!=TRUE) %position% shares(0)
 
-bt <- Backtest()
-
-Check(window="2013")
+Backtest()

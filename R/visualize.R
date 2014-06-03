@@ -60,6 +60,8 @@ Vis <- Visualise <- Visualize <- function(...,
       lchdata = list(ind$xts())
       lind[ii] <- NULL
       break
+    } else {
+      lchdata = list(eval.sfl(indicator(Close, data=OHLCV))$xts())
     }
   }
   

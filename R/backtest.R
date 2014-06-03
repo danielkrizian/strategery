@@ -31,39 +31,73 @@ Backtest <- function() {
   
   setkeyv(mp, names(mp)[-length(names(mp))])
   
+  if(nrow(mp[duplicated(mp)])) {
+    print("Ambiguous position signals found at: ")
+    print(mp[duplicated(mp)])
+    browser()
+  }
+  
   # apply rules in an existing portfolio, generate orders from signals 
   # signal = difference between existing and model portfolio
   generate.orders <- function(model, portfolio=NULL) {
-    orders <- model[, OrderSize:=c(Pos[1],diff.default(Pos)), by=Instrument]
+    orders = model[, OrderSize:=c(Pos[1],diff.default(Pos)), by=Instrument]
     orders[OrderSize!=0][,Pos:=NULL]
   }
   
   orders = generate.orders(mp)
-
+  
+  # on trading days, collect open orders generated during non-trading days or
+  # otherwise still open/unexecuted orders
+  # make trading calendar available. For preparation/bundling of orders
+  collect.orders <- function(orders, calendar, lag.days=1) {
+    calendar[, TradingDate:=Date] # need to make non-key copy that persists after join
+    orders = calendar[orders[,Date:=Date + lag.days], roll=-Inf]
+    # bundle orders for the trader to execute on a given trading day
+    orders = orders[, list(OrderSize=sum(OrderSize)), keyby=list(Instrument,TradingDate)]
+    orders[, list(Instrument, TradingDate, OrderSize)]
+  }
+  
+#   calendar= if(exists("CAL")) CAL else Calendar(trading=T)
+#   orders = collect.orders(orders, calendar)
+  
   initDate <- min(orders$Date)
   portfolio <- data.table(Date=initDate, Instrument=unique(orders$Instrument), Pos=numeric(1), key="Date")
   
   # execute orders -> book transactions
   execute <- function(orders, market=OHLCV, algo="MOC") {
 
-    # execution algorithm: market on close
-    # take the price on a date following immediately the order date 
-    # (example: roll backwards the price from Monday if the order date is Saturday.
-    # fillDate and fill price will be Monday)
-    orders.filled <- market[,FillDate:=Date][orders[,Date:=Date + 1], roll=-Inf][
-      ,Price:=Close][
-        ,TxnQty:=OrderSize]
-    # remove orders yet to be filled in the future (having FillDate==NA)
-    orders.filled <- orders.filled[!is.na(FillDate)]
+    # Note that on certain official calendar trading days, 
+    # markets were unexpectedly closed, e.g. 2001-09-11 or 1985-09-27 (Hurricane Gloria) in US 
+    # Therefore, collect & bundle orders on actual market days
+    lag.days = 1 # at least the next day after their generation
+    orders.collected = collect.orders(orders, calendar=market, lag.days=lag.days)
+    # Some orders could get cancelled/netted. Remove them
+    orders.collected = orders.collected[OrderSize!=0]
+    # Execution algorithm: market on close
+    # Example: take the price on a date following immediately the order date.
+    # Roll backwards the price from Monday if the order date is Saturday.
+    # fillDate and fill price will be Monday.
+    orders.filled = market[,FillDate:=Date][orders.collected][, Price:=Close][,TxnQty:=OrderSize]
     
-    orders.filled <- orders.filled[,list(Instrument, FillDate, TxnQty, Price)]
+    # remove orders yet to be filled in the future (having FillDate==NA)
+    orders.filled = orders.filled[!is.na(FillDate)]
+    
+    orders.filled = orders.filled[,list(Instrument, FillDate, TxnQty, Price)]
     setnames(orders.filled, "FillDate", "Date")
     setkey(orders.filled, Instrument, Date)
-    txns <- orders.filled[, TxnValue:= TxnQty * Price]
+    txns = orders.filled[, TxnValue:= TxnQty * Price]
     return(txns)
   }
   
   txns <- execute(orders, OHLCV, "MOC")
+  
+  if(nrow(txns[duplicated(txns)])){
+    print("Multiple transactions generated for the same instrument: ")
+    print(txns[duplicated(txns)])
+    print("Backtest stopped to prevent error in Portfolio$calcPL. TODO: make it robust.")
+    browser()
+  }
+     
 
   # update portfolio positions with new transactions
   # otherwise initial portfolio could be passed in via dots
