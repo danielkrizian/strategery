@@ -20,7 +20,6 @@ Imports:
 =======
 Imports:
     data.table (>= 1.8.11),
->>>>>>> 92c804838476d91a1056abc5c3929981ceae49a8
     RColorBrewer,
     FinancialInstrument,
     quantstrat,
