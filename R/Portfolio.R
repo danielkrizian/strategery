@@ -125,7 +125,7 @@ Portfolio.trades <- function(summary=T, by= NULL) {
   return(out)
 }
 
-
+#' @import data.table
 Portfolio <- setRefClass("Portfolio"
                          , fields = list(name="character",
                                          positions="data.table",

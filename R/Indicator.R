@@ -376,6 +376,7 @@ similar.scale <- function(..., thres=0.7) {
   r >= min(max(thres, 0), 1)
 }
 
+#' @import data.table
 Indicator = setRefClass('Indicator',
                         fields= list(data="data.table", trans="language", .id="character",
                                      .time="character", .col="character", evaled="logical",

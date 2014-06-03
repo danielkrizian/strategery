@@ -2,6 +2,7 @@
 Account.deposit=function(amount, date) {}
 Account.withdraw=function(amount, date) {}
 #' @include Portfolio.R
+#' @import data.table
 Account <- setRefClass("Account"
                        , contains="Portfolio"
                        , fields = list(entries="data.table"

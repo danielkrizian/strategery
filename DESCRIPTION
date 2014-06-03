@@ -14,9 +14,8 @@ Description: System for testing strategies. The goal is to combine simple
     data.table - which is implemented in C++, has faster sorting algos vs xts
     and uses database concepts.
 License: TBD
-Depends:
-    data.table (>= 1.8.11)
 Imports:
+    data.table (>= 1.8.11),
     RColorBrewer,
     FinancialInstrument,
     quantstrat,
@@ -38,23 +37,23 @@ Imports:
 Collate:
     'Portfolio.R'
     'Account.R'
+    'Indicator.R'
+    'Returns.R'
     'backtest.R'
     'data.R'
-    'strategy.R'
-    'Indicator.R'
+    'datagery.misc.R'
+    'datagery.read.R'
+    'datagery.update.R'
     'metrics.R'
     'parameter.R'
     'price.R'
-    'Returns.R'
     'rule.R'
-    'size.R'
     'sfl.R'
+    'size.R'
+    'strategy.R'
     'style.R'
     'time.series.R'
     'trans.R'
     'util.R'
     'visualize.R'
-    'datagery.misc.R'
-    'datagery.read.R'
-    'datagery.update.R'
 Repository: GitHub <github.com/danielkrizian/strategery>
