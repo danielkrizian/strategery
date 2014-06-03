@@ -104,7 +104,8 @@ Indicator.initialize <- function(..., data=data.table(),
     stop("Multi-column ids not supported yet")
   .self$.id <- ifelse(length(id.col), id.col, key(data)[-length(key(data))] )
   .self$.time <- ifelse(length(time.col), time.col, key(data)[length(key(data))])
-  if(length(trans)==1)
+  if(length(trans)==1 & 
+       !identical(as.character(trans),as.character(quote(`<undef>`()))))
     .self$.col <- as.character(trans)
   else
     .self$.col <- col
@@ -280,7 +281,7 @@ Indicator.xts <- function(col=.col) {
   DT = wide(col)
   row.names = DT[, .time, with=F][[.time]]
   DT[, c(.time):=NULL]
-  out = as.xts(as.data.frame(DT), order.by=as.Date(as.character(row.names))) # as.Date because unsupported 'indexClass' indexing type: IDate
+  out = xts::as.xts(as.data.frame(DT), order.by=as.Date(as.character(row.names))) # as.Date because unsupported 'indexClass' indexing type: IDate
   return(out)
 }
 

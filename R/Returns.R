@@ -80,10 +80,10 @@ Returns = setRefClass('Returns', contains="Indicator",
                                          if(length(.vindex)) {
                                            Index = as.name(.vindex)
                                            data[, Drawdown:=Index / cummax(Index) - 1
-                                                , by=Instrument]
+                                                , by=.id]
                                          } else {
                                            Return = as.name(.col)
-                                           data[,Drawdown:=dd(eval(Return)), by=Instrument]
+                                           data[,Drawdown:=dd(eval(Return)), by=.id]
                                          }
                                          .dd <<- "Drawdown"
                                        }
@@ -96,7 +96,7 @@ Returns = setRefClass('Returns', contains="Indicator",
                                      if(missing(col)){
                                        if(!length(.vindex)){
                                          Return = as.name(.col)
-                                         data[,Index:=value.index(eval(Return)), by=Instrument]
+                                         data[,Index:=value.index(eval(Return)), by=.id]
                                          .vindex <<- "Index"
                                        }
                                        return(.vindex)

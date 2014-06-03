@@ -80,7 +80,7 @@ edhec.returns <- function(ids, time, username, pwd) {
   out = read.csv(textConnection(html), sep=";", check.names=F)
   out[, -1] = apply(out[, -1], 2, 
                     FUN = function(x) as.numeric(gsub("%", "", x, fixed=TRUE)))
-  out[, 1] = as.Date(out[, 1], format = "%d/%M/%Y")
+  out[, 1] = as.Date(out[, 1], format = "%d/%m/%Y")
   out = data.table:::melt.data.table(as.data.table(out), 
                                      id.vars = "date", variable.name="ID",
                                      value.name="Return")
@@ -90,7 +90,7 @@ edhec.returns <- function(ids, time, username, pwd) {
   setkey(out, ID, Date)
   if(!missing(ids))
     out = out[J(ID=ids)]
-  
+  out = out[!is.na(Date)] # EDHEC contains <NA> dates sometimes
   return(out)
 }
 
