@@ -17,9 +17,6 @@ License: TBD
 Depends:
     data.table (>= 1.8.11)
 Imports:
-=======
-Imports:
-    data.table (>= 1.8.11),
     RColorBrewer,
     FinancialInstrument,
     quantstrat,
