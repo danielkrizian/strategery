@@ -52,14 +52,6 @@ datagery.returns <- function(ids, time) {
   return(out)
 }
 
-
-#get object satisfying criteria
-datagery.objects <- function(criteria=list(class="fund", 
-                                           connects.to="",
-                                           has.edge="")) {
-  if(identical(criteria)
-}
-
 edhec <- function(ids, fields="returns", time, ...) {
   src.prefix = "edhec"
   args = as.list(match.call()[-1])

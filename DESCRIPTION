@@ -15,7 +15,8 @@ Description: System for testing strategies. The goal is to combine simple
     and uses database concepts.
 License: TBD
 Depends:
-    data.table (>= 1.8.11),
+    data.table (>= 1.8.11)
+Imports:
     RColorBrewer,
     FinancialInstrument,
     quantstrat,
