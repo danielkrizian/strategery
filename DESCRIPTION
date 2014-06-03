@@ -33,7 +33,7 @@ Depends:
     ggplot2,
     ggthemes,
     scales,
-    rChartsDygraph
+    rChartsDygraphs
 Collate:
     'Portfolio.R'
     'Account.R'
