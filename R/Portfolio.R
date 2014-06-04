@@ -90,6 +90,7 @@ Portfolio.summary <- function(){
 #' Extract trades list with optional summary stats
 #' @param summary logical. Calculate summary statistics for trades
 #' @param by character. Can be "Instrument", "Side", or "Instrument,Side"
+#' @import lubridate
 Portfolio.trades <- function(summary=T, by= NULL) {
   
   txns[, TradeID:=cumsum(delay(cumsum(TxnQty), pad=0)==0) ,by=Instrument]

@@ -16,6 +16,10 @@ Returns.calendar <- function(what=c("MTD", "YTD", "3M", "6M", "years")){
 
 }
 
+#' @import ggplot2
+#' @import scales
+#' @import ggthemes
+#' @import grid
 Returns.plot <- function(drawdowns=T) {
   datacols=c(.id, .time, .self$index)
   if(drawdowns)
