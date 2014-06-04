@@ -74,12 +74,14 @@ deconstruct.sfl = function(expr, envir = parent.frame(), enclos = parent.frame()
         # SMA <- indicator( SMA(Close, nsma), data=OHLCV)
         obj <- eval(m, envir=as.environment(.GlobalEnv))
         if(identical(class(obj),"sfl")) {
-          m1 <- do.call(substitute, list(eval(m)))
-          if(m1[[1]]==quote(`%indicator%`)) {
-            return(m1) # resolves clash Close <- indicator(Close, data=OHLCV)
+          m1 = obj
+#           m1 <- do.call(substitute, list(eval(m)))
+#           if(typeof(m1)=="language") {
+            if(m1[[1]]==quote(`%indicator%`)){
+              return(m1) # resolves clash Close <- indicator(Close, data=OHLCV)
           }
-          else 
-            if(existsFunction(as.character(m))) deconstruct.sfl(m, envir, enclos) 
+          else if(existsFunction(as.character(m))) 
+            deconstruct.sfl(m, envir, enclos) 
           else
             return(deconstruct.sfl(m1, envir, enclos))
         } else m
