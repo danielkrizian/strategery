@@ -395,6 +395,8 @@ Indicator = setRefClass('Indicator',
 )
 
 ##### Indicator[i, j] #####
+#' @import zoo
+#' @import xts
 setMethod("[","Indicator", function(x, i, j, exact=FALSE, ..., drop=TRUE) {
   if(missing(i) & missing(j))
     return(x)
@@ -402,7 +404,7 @@ setMethod("[","Indicator", function(x, i, j, exact=FALSE, ..., drop=TRUE) {
   sidfilter = NULL
   if(!missing(i)){
     if(is.character(i)) {
-      parsed <- .parseISO8601(i)
+      parsed <- xts::.parseISO8601(i)
       start <- as.Date(parsed$first.time)
       end <- as.Date(parsed$last.time)
       and <- if(any(is.na(c(start,end)))) "" else "&"

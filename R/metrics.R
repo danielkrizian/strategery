@@ -64,6 +64,7 @@ mar <- function(R, ann=252) {
 ####### VALUE INDEX ######
 
 #' @param x vector of  percent changes
+#' @import zoo
 value.index <- function(x){
   x = na.fill(x, fill=0)
   cumprod(1+x)
