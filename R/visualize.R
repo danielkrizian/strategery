@@ -13,29 +13,32 @@
 #' @export
 Vis <- Visualise <- Visualize <- function(...,
                                           ids,
-                                          window){
+                                          window,
+                                          trades=T){
   inds = list(...)
   all <- ls(envir=parent.frame())
   lnames <- all[
     unlist(sapply(all, function(x) {
-      o = get(x)
+      o = get(x, envir = parent.frame())
       return(inherits(o, "sfl") | inherits(o, "Indicator"))
     }, USE.NAMES=TRUE, simplify=FALSE))
     ]
   
+  # collect indicators
   lind <- lapply(lnames, function(n) {
-    o = get(n)
+    o = get(n, envir = parent.frame())
     if(is.sfl(o)) {
       ind = eval.sfl(o)
-#     } else if(is.rule(o)) {
-#       if(is.sfl(o$signal))
-#         ind = eval.sfl(o$signal)
+      # } else if(is.rule(o)) {
+      # if(is.sfl(o$signal))
+      # ind = eval.sfl(o$signal)
     } else if(is.indicator(o)) {
       ind = o
     }
     return(ind)
   })
   
+  # filter by ids
   if(!missing(ids)) {
     i=0
     for(ind in lind) {
@@ -44,6 +47,7 @@ Vis <- Visualise <- Visualize <- function(...,
     }
   }
 
+  # filter time window
   if(!missing(window)) {
     i=0
     for(ind in lind) {
@@ -66,11 +70,8 @@ Vis <- Visualise <- Visualize <- function(...,
   }
   
   groupbyids=F # regime
-  # extract data from other indicators among new/existing charts 
-  
-  #   while(length(lind)) {
+  # extract data from other indicators and place into new/existing charts
   ii = 0
-  #     chi = 0
   for(ind in lind) {
     todo = T
     for(chi in 1:length(lchdata)) {
@@ -88,13 +89,17 @@ Vis <- Visualise <- Visualize <- function(...,
       lchdata = c(lchdata, list(d))
   }
   
-  a = lapply(lchdata, function(x) dygraph(data = x, sync = T))
-  layout_dygraphs(a)
-    
-
-  
-  BSSC <- function(x) {
-    as.character(cut(x,breaks=c(-Inf,0,Inf), labels=c("Sell", "Buy")))
+  trades = if(trades) {
+    trades = Backtest()$trades(summary=F)
+    if(!missing(ids))
+      trades[Instrument==ids[1]]
+    else
+      trades
+  } else {
+    NULL
   }
+  
+  a = lapply(lchdata, function(x) dygraph(data = x, sync = T, trades=trades))
+  layout_dygraphs(a)
 
 }
