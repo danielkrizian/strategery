@@ -69,8 +69,10 @@ Vis <- Visualise <- Visualize <- function(...,
   }
   # create price chart data, as no price indicator was found
   if(!length(lchdata)){
-    lchdata = list(eval.sfl(indicator(Close, data=OHLCV))$xts())
-    if(!missing(ids))
+    pind = eval.sfl(indicator(Close, data=OHLCV))
+    univariate = is.univariate(pind)
+    lchdata = list(pind$xts())
+    if(!missing(ids) & !univariate)
       lchdata[[1]] = lchdata[[1]][, ids]
   }
 
