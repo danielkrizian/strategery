@@ -123,64 +123,66 @@ is.evaled <- function(x) {
 #' @S3method Ops Indicator
 Ops.Indicator <- function(e1, e2) {
   op <- as.name(.Generic)
-  if(is.numeric(e2) | is.logical(e2)) {
-#     expr <- substitute(op(Value, e2))
-#     if(as.character(op) %in% c("==", "!=", "<", "<=", ">=", ">")) {
-#       cl <- class(e1$Value)
-#       .data <- e1[,Value:=as(eval(expr), cl), by=Instrument]
-#       .data[,Value:=as.logical(Value)]
-#       # because assigning directly Value:=eval(expr) throws error: 
-#       # "Type of RHS ('logical') must match LHS."
-#     }
-    e1$eval()
-    e1trans <- e1$trans
-    trans <- substitute(op(e1trans, e2))
-    out <- Indicator(data=e1$data, trans=trans)
-    out$eval()
-    return(out)
-  }
-  else if(inherits(e2,"Indicator")) {
-    if(address(e1$data)==address(e2$data)) {
+  if(missing(e2)){
+    if(as.character(op) == "!"){
       e1$eval()
-      e2$eval()
       e1trans <- e1$trans
-      e2trans <- e2$trans
-      trans <- substitute(op(e1trans, e2trans))
+      trans <- substitute(op(e1trans))
       out <- Indicator(data=e1$data, trans=trans)
       out$eval()
       return(out)
     }
-    
-    if(as.character(op) %in% c("&", "|")) {
-      .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
-                                   e2[e1, roll = T, rollends=FALSE],
-                                   use.names = TRUE),
-                             Instrument, Date))
-      if(as.character(op) =="&")
-        .data[,Value := as.logical(Value * Value.1)]
-      else
-        .data[,Value := as.logical(Value + Value.1)]
-      
-      .data <- .data[, list(Instrument, Date, Value)]
-    } else {
+  } else {
+    if(is.numeric(e2) | is.logical(e2)) {
+      e1$eval()
+      e1trans <- e1$trans
+      trans <- substitute(op(e1trans, e2))
+      out <- Indicator(data=e1$data, trans=trans)
+      out$eval()
+      return(out)
+    }
+    else if(inherits(e2,"Indicator")) {
       if(address(e1$data)==address(e2$data)) {
         e1$eval()
         e2$eval()
-        Indicator(e1$data, trans=substitute(op(e1$trans, e2$trans)))
-      } else {
-        stop("build address(e1$data)==address(e2$data)")
+        e1trans <- e1$trans
+        e2trans <- e2$trans
+        trans <- substitute(op(e1trans, e2trans))
+        out <- Indicator(data=e1$data, trans=trans)
+        out$eval()
+        return(out)
       }
-      .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
-                                   e2[e1, roll = T, rollends=FALSE],
-                                   use.names = TRUE),
-                             Instrument, Date))
-      expr <- substitute(op(Value, Value.1))
-      .data[,Result := eval(expr)]
-      .data <- .data[, list(Instrument, Date, Result)]
-      setnames(.data, "Result", "Value")
+      
+      if(as.character(op) %in% c("&", "|")) {
+        .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
+                                     e2[e1, roll = T, rollends=FALSE],
+                                     use.names = TRUE),
+                               Instrument, Date))
+        if(as.character(op) =="&")
+          .data[,Value := as.logical(Value * Value.1)]
+        else
+          .data[,Value := as.logical(Value + Value.1)]
+        
+        .data <- .data[, list(Instrument, Date, Value)]
+      } else {
+        if(address(e1$data)==address(e2$data)) {
+          e1$eval()
+          e2$eval()
+          Indicator(e1$data, trans=substitute(op(e1$trans, e2$trans)))
+        } else {
+          stop("build address(e1$data)==address(e2$data)")
+        }
+        .data <- unique(setkey(rbind(e1[e2, roll = T, rollends=FALSE],
+                                     e2[e1, roll = T, rollends=FALSE],
+                                     use.names = TRUE),
+                               Instrument, Date))
+        expr <- substitute(op(Value, Value.1))
+        .data[,Result := eval(expr)]
+        .data <- .data[, list(Instrument, Date, Result)]
+        setnames(.data, "Result", "Value")
+      }
     }
   }
-  return()
 }
 
 #' @method %AND% Indicator
