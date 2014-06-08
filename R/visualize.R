@@ -57,6 +57,7 @@ Vis <- Visualise <- Visualize <- function(...,
   }
   
   ii = 0
+  lchdata = list()
   # first chart should be price chart, if there is a price indicator defined
   for(ind in lind) {
     ii = ii + 1
@@ -64,10 +65,15 @@ Vis <- Visualise <- Visualize <- function(...,
       lchdata = list(ind$xts())
       lind[ii] <- NULL
       break
-    } else {
-      lchdata = list(eval.sfl(indicator(Close, data=OHLCV))$xts())
     }
   }
+  # create price chart data, as no price indicator was found
+  if(!length(lchdata)){
+    lchdata = list(eval.sfl(indicator(Close, data=OHLCV))$xts())
+    if(!missing(ids))
+      lchdata[[1]] = lchdata[[1]][, ids]
+  }
+
   
   groupbyids=F # regime
   # extract data from other indicators and place into new/existing charts
