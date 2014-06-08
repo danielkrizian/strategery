@@ -7,7 +7,11 @@ Portfolio.position <- function(instrument=NULL, date=NULL){
   else
     last(positions[Instrument==instrument][Date<=date]$Pos)
 }
-
+#' Add transactions to the portfolio
+#' 
+#' @param x data.table object with columns:
+#' Instrument, Date, TxnQty, Price, TxnValue
+#' keyed by Instrument, Date
 Portfolio.addTxns <- function(x){
   # Update portfolio positions with new transactions
   if(is.null(txns)) txns <<-x else {
@@ -91,14 +95,31 @@ Portfolio.summary <- function(){
 #' @param summary logical. Calculate summary statistics for trades
 #' @param by character. Can be "Instrument", "Side", or "Instrument,Side"
 #' @import lubridate
-Portfolio.trades <- function(summary=T, by= NULL) {
+Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
+
+  # treat incomplete (still open) trades
+  if(incl.open){
+    closeout.orders = txns[, list(OrderSize=-last(Pos)),by="Instrument"][OrderSize!=0]
+    # add last avaialable date
+    closeout.orders = OHLCV[, list(Date=last(Date)), by=Instrument][closeout.orders]
+    setkey(closeout.orders, Instrument, Date)
+    closeout.txn = execute(closeout.orders, lag.days = 0)[, Pos:=0]
+    .txns = rbindlist(list(txns, closeout.txn))
+    setkey(.txns, Instrument, Date)
+  } else {
+    # remove last txn if Pos!=0
+    toremove = txns[, list(Date=last(Date), Pos=last(Pos)), by="Instrument"][Pos!=0]
+    .txns = txns[!setkey(toremove, Instrument, Date)]
+  }
   
-  txns[, TradeID:=cumsum(delay(cumsum(TxnQty), pad=0)==0) ,by=Instrument]
-  .trades <- txns[, list(PL=-sum(TxnValue), 
-                        Base=ifelse(first(TxnValue)>0, sum((TxnValue>0)*TxnValue), sum((TxnValue<0)*TxnValue)),
-                        Start=first(Date),
-                        End=last(Date))
-                 , by="Instrument,TradeID"]
+  .txns[, TradeID:=cumsum(delay(cumsum(TxnQty), pad=0)==0), by=Instrument]
+  .trades <- .txns[, list(PL=-sum(TxnValue), 
+                          Base=ifelse(first(TxnValue)>0, 
+                                      sum((TxnValue>0)*TxnValue), 
+                                      sum((TxnValue<0)*TxnValue)),
+                          Start=first(Date),
+                          End=last(Date))
+                   , by="Instrument,TradeID"]
   .trades[,PL:=PL/abs(Base)]
   .trades[,Side:=as.character(factor(Base>0
                                     , levels=c(T, F)
