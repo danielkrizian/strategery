@@ -21,8 +21,27 @@ annualized <- function(x, ann=12, compound=F) {
   scaleFUN ( cumulative(x, compound) + base , ann.factor) - base
 }
 
+##### VOLATILITY ####################
 sigma <- volatility <- vol <- std <- stdev <- StDev <- function(x, ann=12) {
   sqrt(ann) * sd(x)
+}
+
+tr <- truerange <- TR <- function(hi, lo, cl) {
+  clag = c(NA, cl[-length(cl)])
+  trueHi = pmax(hi, clag, na.rm = FALSE)
+  trueLo = pmin(lo, clag, na.rm = FALSE)
+  trueHi - trueLo
+}
+
+#' @import TTR
+atr <- ATR <- function(hi, lo, cl, n=14, ma, ...) {
+  tr = TR(hi, lo, cl)
+  maArgs <- list(n = n, ...)
+  if (missing(ma)) {
+    ma <- "EMA"
+    maArgs$wilder <- TRUE
+  }
+  do.call(ma, c(list(tr), maArgs))
 }
 
 ##### RISK-ADJUSTED PERFORMANCE #####
