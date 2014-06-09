@@ -139,9 +139,9 @@ merge.roll <- function(x, y){
 
 # VECTORS -----------------------------------------------------------------
 
-first <- function(x) x[1]
-
-last <- function(x) x[length(x)]
+# first <- function(x) x[1]
+# 
+# last <- function(x) x[length(x)]
 
 # FORMATTING --------------------------------------------------------------
 
