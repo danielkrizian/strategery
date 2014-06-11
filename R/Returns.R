@@ -2,18 +2,33 @@
 #' 
 #' @rdname indicator
 #' @export indicator
-returns <- function(data, trans, col) {
+returns <- function(data, trans, col, benchmark=NULL) {
   if(missing(trans))
     strans <- as.name(col)
   else
     strans <- substitute(trans)
-    r = Returns$new(data=data, trans=strans)
-    return(r$eval())
+  r = Returns$new(data=data, trans=strans, benchmark=as.character(benchmark))
+  return(r$eval())
 }
 
+Returns.calcAlpha <- function(annualize=T) {
+  #TODO(dk): finalize Returns.alpha. Signature: benchmark data.table, Rf data.table
+  Rf=0
+  data[, list(Alpha=alpha(Return, Benchmark, Rf)), by=Instrument]
+}
 
 Returns.calendar <- function(what=c("MTD", "YTD", "3M", "6M", "years")){
+  freq <<- 12L; warning("Freq fixed at 12 in Returns.calendar. TODO")
+  years <- data[, list(Return=prod(1+Return)-1), by=list(Instrument, Year=year(Date))]
+  years <- dcast.data.table(years, Instrument ~ Year)
+  all <- data[, list("Total (ann.)"=prod(1+Return)^(freq/.N)-1),keyby="Instrument"]
+  out <- merge(all, years)
+  return(out)
+}
 
+Returns.correlation <- function(with="Benchmark"){
+  if(identical(with,"Benchmark"))
+    data[, list(Correlation=cor(Return,Benchmark)),keyby=Instrument]
 }
 
 #' @import ggplot2
@@ -108,7 +123,9 @@ Returns = setRefClass('Returns', contains="Indicator",
                                        .vindex <<- col
                                      }
                                    }),
-                      methods = list(calendar=Returns.calendar,
+                      methods = list(calcAlpha=Returns.calcAlpha,
+                                     calendar=Returns.calendar,
+                                     correlation=Returns.correlation,
                                      plot=Returns.plot,
                                      summary=Returns.summary))
 
