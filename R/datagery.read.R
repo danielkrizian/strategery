@@ -26,6 +26,53 @@ datageryIds <- function(lookup, src) {
   }
 }
 
+bloomberg <- function(ids, fields, time){
+  # TODO(dk): support for fields vector
+  from="1930-01-01"
+  to = Sys.Date()-20
+  require(Rbbg)
+  conn <- blpConnect()
+  if("PX_LAST" %in% fields || "YLD_YTM_MID" %in% fields) {
+    # working ranges as of 20140424:
+    # C0A0 Index: 19231112,20140406
+    # G0Q0 Index: 19231130,20140424
+    start.date <- format(as.Date(from),"%Y%m%d")
+    end.date <- format(as.Date(to),"%Y%m%d")
+    .data <- bdh(conn, ids, fields, start.date, end.date
+                 , option_names=c(  "nonTradingDayFillOption"
+                                    , "nonTradingDayFillMethod")
+                 , option_values=c(  "ACTIVE_DAYS_ONLY"
+                                     , "NIL_VALUE"))
+    .data <- as.data.table(.data)
+    if(length(ids)==1) .data[,ticker:=ids]
+    setnames(.data, c("ticker","date",fields),c("Ticker","Date","Value"))
+    setcolorder(.data,c("Ticker","Date","Value"))
+    .data[,Date:=as.IDate(Date)]
+    .data[,Value:=as.numeric(Value)]
+    if(identical(fields,"PX_LAST") || identical(fields,"YLD_YTM_MID"))
+      return(.data)
+    #   } else {
+    #     bdp(conn, c("G0O1 Index","G0O2 Index"), "MLI_TOT_RTN_LOC", "MLI_DATE","20140106")
+    #     l <-lapply(as.list(c("20140103","20140106")),
+    #            function(x) {
+    #              downloaded <- bdp(conn, c("G0O1 Index","G0O2 Index"), "MLI_TOT_RTN_LOC", "MLI_DATE",x)
+    #              downloaded$Ticker <- row.names(downloaded)
+    #              downloaded$Date <- as.Date(x, format="%Y%m%d")
+    #              downloaded
+    #            })
+    
+  } else { 
+    # this branch probably not needed (supposed to solve MLI indices)
+    .data <- bdp(conn, securities=ids,fields=fields)
+  }
+  .data <- as.data.table(.data)
+  if("date" %in% names(.data)) {
+    .data$date <- as.IDate(.data$date)
+    setnames(.data, "date", "Date")
+  }
+  return(.data)
+}
+
 
 datagery <- function(ids, fields=c("prices","returns"), time) {
   src.prefix = "datagery"
@@ -90,7 +137,7 @@ edhec.returns <- function(ids, time, username, pwd) {
   setkey(out, ID, Date)
   if(!missing(ids))
     out = out[J(ID=ids)]
-  out = out[!is.na(Date)] # EDHEC contains <NA> dates sometimes
+  
   return(out)
 }
 
