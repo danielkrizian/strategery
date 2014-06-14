@@ -36,6 +36,7 @@ Imports:
     scales,
     rChartsDygraphs
 Collate:
+    'ATS.R'
     'Portfolio.R'
     'Account.R'
     'Indicator.R'
