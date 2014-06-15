@@ -147,7 +147,43 @@ Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
   return(out)
 }
 
+#' Keeps track of all positions with a profit and loss ("PnL").
+#' keep track of the market value of the positions (known as the "holdings")
+#' 
+#' In addition to the positions and holdings management the portfolio must also
+#' be aware of risk factors and position sizing techniques in order to optimise 
+#' orders that are sent to a brokerage or other form of market access.
+#' 
+#' RiskManagement + OrderManagementSystem (OMS)
+#' Risk Management=c("Exposure", "Position Sizing")
+#' 
+#' Portfolio object must be able to handle SignalEvent objects, generate 
+#' OrderEvent objects and interpret FillEvent objects to update positions.
+#' 
+#' The SignalEvents are utilised by the Portfolio object as advice for how to
+#' trade. It assesses them in the wider context of the portfolio, in terms of 
+#' risk and position sizing. This leads to OrderEvents that will be sent to an 
+#' ExecutionHandler.
+#' 
+#' Portfolio requires an initial capital value, which is set to the default of 
+#' 100,000 USD. It also requires a starting date-time.
+#' @field pos.history
+#' Stores a list of all previous positions recorded at the timestamp of a market
+#' data event. A position is simply the quantity of the asset. Negative 
+#' positions mean the asset has been shorted.
+#' @field pos
+#' Stores a dictionary containing the current positions for the last market bar 
+#' update.
+#' @field holdings.history
+#' Holdings describe the current market value of the positions held - 
+#' closing price obtained from the current market bar, an approximation.
+#' Track here also cumulative cash, cum. commissions and total equity. 
+#' Short positions are treated as negative. The starting cash and total equity 
+#' are both set to the initial capital.
+#' @field holdings
+#' Stores the most up to date dictionary of all symbol holdings values.
 #' @import data.table
+#' @include Event.R
 Portfolio <- setRefClass("Portfolio"
                          , fields = list(name="character",
                                          positions="data.table",
@@ -159,6 +195,47 @@ Portfolio <- setRefClass("Portfolio"
                            initialize=function(...)  {
                              assign('.performance',numeric(), .self)
                              .self$initFields(...)
+                           },
+                           updateTimeIndex = function(event){
+  "Handles the new holdings tracking. It firstly obtains the latest prices from 
+  the market data handler and creates a new dictionary of symbols to represent the
+  current positions, by setting the 'new' positions equal to the 'current' 
+  positions. These are only changed when a FillEvent is obtained, which is handled
+  later on in the portfolio. The method then appends this set of current positions
+  to the positions.history list. Next, the holdings are updated in a similar 
+  manner, with the exception that the market value is recalculated by multiplying
+  the current positions count with the closing price of the latest bar. Finally 
+  the new holdings are appended to holdings.history.
+  
+  On every 'heartbeat', that is every time new market data is requested from the 
+  DataHandler object, the portfolio must update the current market value of all 
+  the positions held. In a live trading scenario this information can be 
+  downloaded and parsed directly from the brokerage, but for a backtesting 
+  implementation it is necessary to calculate these values manually.
+  
+  Arguments:
+    event - MarketEvent from the events queue.
+"
+  # update positions
+  # append to history
+  # update holdings and calculate market value
+  # append to history
+  
+                             print("Time index updated in portf from market event")
+                           },
+                           updateSignal = function(event){
+  "Acts on a SignalEvent to generate new orders based on the portfolio logic."
+  
+                             print("Signal updated in portf from signal event")
+                           },
+                           updateFill = function(event){
+  "Updates the portfolio current positions and holdings from a FillEvent.
+  
+  Determines whether a FillEvent is a Buy or a Sell and then updates the 
+  current positions accordingly by adding/subtracting the correct quantity of 
+  shares"
+  
+                             print("Fill updated in portf from fill event")
                            },
                            position = Portfolio.position, 
                            addTxns = Portfolio.addTxns,

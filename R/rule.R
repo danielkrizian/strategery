@@ -19,7 +19,17 @@ is.rule <- function(x) {
 #' `allocation` is synonym to `position`
 #' @export
 `%position%` <- function(signal, size) {
+  structure(.Data=list(signal=signal, size=size, action="position"), class="rule")
+}
+
+#' @export
+`%enter%` <- function(signal, size) {
   structure(.Data=list(signal=signal, size=size, action="enter"), class="rule")
+}
+
+#' @export
+`%exit%` <- function(signal, size) {
+  structure(.Data=list(signal=signal, size=size, action="exit"), class="rule")
 }
 
 `%allocation%` <- function(signal, size) {

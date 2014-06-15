@@ -39,6 +39,7 @@ Collate:
     'ATS.R'
     'Portfolio.R'
     'Account.R'
+    'Queue.R'
     'Indicator.R'
     'Returns.R'
     'Trader.R'

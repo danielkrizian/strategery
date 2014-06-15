@@ -1,3 +1,5 @@
+ExecutionHandler <- function(){}
+
 
 # on trading days, collect open orders generated during non-trading days or
 # otherwise still open/unexecuted orders

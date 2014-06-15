@@ -1,21 +1,20 @@
+extract.signal <- function(rule) {
+  s = rule$signal
+  if(is.sfl(s))
+    s = eval.sfl(s)
+  s$data[eval(as.name(s$.col)) == TRUE, c(s$.id, s$.time), with=FALSE]
+}
+
+model.portfolio <- function(signal, sizing) {
+  if(is.numeric(sizing))
+    signal[, Pos:=sizing]
+}
 
 
 #' Backtest
 #' 
 #' @export
 Backtest <- function() {
-  
-  extract.signal <- function(rule) {
-    s = rule$signal
-    if(is.sfl(s))
-      s = eval.sfl(s)
-    s$data[eval(as.name(s$.col)) == TRUE, c(s$.id, s$.time), with=FALSE]
-  }
-  
-  model.portfolio <- function(signal, sizing) {
-    if(is.numeric(sizing))
-    signal[, Pos:=sizing]
-  }
   
   # evaluate all rules into model portfolios and 
   # reconcile them into single model portfolio

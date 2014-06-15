@@ -209,7 +209,7 @@ Ops.Indicator <- function(e1, e2) {
     # see also this for single-columned key:
     # http://stackoverflow.com/questions/12773822/why-does-xy-join-of-data-tables-not-allow-a-full-outer-join-or-a-left-join
     .col = paste0(e1$.col," & ", e2$.col)
-    fullouter[, c(.col):= get(e1$.col) & get(e2$.col)]
+    fullouter[, c(.col):= get(e1$.col) & get(e2$.col), by=Instrument]
     out <- Indicator(data=fullouter, trans=trans, col=.col)
     return(out)
   }
@@ -238,12 +238,39 @@ Ops.Indicator <- function(e1, e2) {
     # see also this for single-columned key:
     # http://stackoverflow.com/questions/12773822/why-does-xy-join-of-data-tables-not-allow-a-full-outer-join-or-a-left-join
     .col = paste0(e1$.col," | ", e2$.col)
-    fullouter[, c(.col):= get(e1$.col) | get(e2$.col)]
+    fullouter[, c(.col):= get(e1$.col) | get(e2$.col), by=Instrument]
     out <- Indicator(data=fullouter, trans=trans, col=.col)
     return(out)
   }
 }
 
+#' @method %crossover% Indicator
+#' @S3method %crossover% Indicator
+`%crossover%.Indicator` <- function(e1, e2){
+  op <- as.name("%crossover%")
+  e1$eval()
+  e2$eval()
+  e1trans <- e1$trans
+  e2trans <- e2$trans
+  trans <- substitute(op(e1trans, e2trans))
+  if(address(e1$data)==address(e2$data)) {
+    out <- Indicator(data=e1$data, trans=trans)
+    out$eval()
+    return(out)
+  } else {
+    fullouter <- unique(setkey(rbind(e1$data[e2$data, roll = T, rollends=FALSE],
+                                     e2$data[e1$data, roll = T, rollends=FALSE],
+                                     use.names = TRUE),
+                               Instrument, Date))
+    # TODO: remove "Instrument, Date" name dependency
+    # see also this for single-columned key:
+    # http://stackoverflow.com/questions/12773822/why-does-xy-join-of-data-tables-not-allow-a-full-outer-join-or-a-left-join
+    .col = paste(e1$.col, as.character(op), e2$.col)
+    fullouter[, c(.col):= get(e1$.col) %crossover% get(e2$.col), by=Instrument]
+    out <- Indicator(data=fullouter, trans=trans, col=.col)
+    return(out)
+  }
+}
 
 Indicator.chart <- function(){
   chartdata <- .self$wide()

@@ -14,6 +14,18 @@
   UseMethod("%OR%",x)
 }
 
+#' Some text
+#' 
+#' @rdname %crossover%
+#' @export %crossover%
+`%crossover%` <- function(x, ...) {
+  UseMethod("%crossover%",x)
+}
+
+`%crossover%.default` <- function(x, y) {
+  c(FALSE, diff.default(x > y, lag=1, differences=1) > 0)
+}
+
 is.sfl <- function(x){
   identical(class(x),"sfl")
 }
@@ -45,6 +57,14 @@ Ops.sfl <- function(e1, e2) {
 #' @method %OR% sfl
 #' @S3method %OR% sfl
 `%OR%.sfl` <- function(e1, e2) {
+  op <- as.name(.Generic)
+  .Data <- substitute(op(e1, e2))
+  return(structure(.Data, class="sfl"))
+}
+
+#' @method %crossover% sfl
+#' @S3method %crossover% sfl
+`%crossover%.sfl` <- function(e1, e2) {
   op <- as.name(.Generic)
   .Data <- substitute(op(e1, e2))
   return(structure(.Data, class="sfl"))
