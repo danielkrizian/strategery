@@ -52,7 +52,7 @@ Collate:
     'rule.R'
     'sfl.R'
     'size.R'
-    'strategy.R'
+    'Strategy.R'
     'style.R'
     'trans.R'
     'util.R'
