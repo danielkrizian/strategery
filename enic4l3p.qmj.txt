@@ -1,0 +1,23 @@
+﻿Revert "Revert "Refactor Backtest()  #36""
+
+This reverts commit c4038ae4e7b60869d4476f70fa69350b7cafe246, reversing
+changes made to e6571b458a4e4b85818958a5a388e8ed9613d698.
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch state-machine
+# Changes to be committed:
+#   (use "git reset HEAD <file>..." to unstage)
+#
+#	modified:   DESCRIPTION
+#	modified:   R/Account.R
+#	new file:   R/Advisor.R
+#	modified:   R/DataHandler.R
+#	modified:   R/Event.R
+#	modified:   R/Portfolio.R
+#	modified:   R/Strategy.R
+#	modified:   R/Trader.R
+#	modified:   R/backtest.R
+#	renamed:    R/ATS.R -> sandbox/ATS.R
+#
+

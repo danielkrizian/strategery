@@ -36,12 +36,15 @@ Imports:
     scales,
     rChartsDygraphs
 Collate:
-    'ATS.R'
+    'Advisor.R'
+    'Queue.R'
+    'Event.R'
     'Portfolio.R'
     'Account.R'
-    'Queue.R'
+    'DataHandler.R'
     'Indicator.R'
     'Returns.R'
+    'Strategy.R'
     'Trader.R'
     'backtest.R'
     'data.R'
@@ -53,7 +56,6 @@ Collate:
     'rule.R'
     'sfl.R'
     'size.R'
-    'Strategy.R'
     'style.R'
     'trans.R'
     'util.R'

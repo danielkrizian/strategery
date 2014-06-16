@@ -1,3 +1,7 @@
+
+#' @include Queue.R
+EventQueue <- setRefClass("EventQueue", contains="Queue")
+
 #' Event is base class providing an interface for all subsequent (inherited) 
 #' events, that will trigger further events in the trading infrastructure.'
 Event <- setRefClass("Event",
