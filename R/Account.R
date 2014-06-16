@@ -5,8 +5,7 @@ Account.withdraw=function(amount, date) {}
 #' @import data.table
 Account <- setRefClass("Account"
                        , contains="Portfolio"
-                       , fields = list(entries="data.table"
-                                       ,portfolios=function(l) {
+                       , fields = list(portfolios=function(l) {
                                          # list of portfolios
                                          if(missing(l)) return(invisible(positions))
                                          else {
@@ -18,8 +17,8 @@ Account <- setRefClass("Account"
                                              positions <<- pool.Portfolio(NULL,NULL) # stump
                                            }
                                          }
-                                       }
-                                       ,benchmarks="data.table")
+                                       },
+                                       benchmarks="data.table")
                        , methods = list(deposit=Account.deposit,
                                         withdraw=Account.withdraw)
 )

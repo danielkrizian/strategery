@@ -1,3 +1,4 @@
+
 #' We will consider the Strategy class hierarchy and describe how a strategy can
 #' be designed to handle multiple symbols, thus generating multiple SignalEvents
 #' for the Portfolio object.
@@ -24,7 +25,7 @@
 #' @include Queue.R
 #' @include Event.R
 #' @import data.table
-Strategy <- setRefClass("Strategy", contains="VIRTUAL"
+Strategy <- setRefClass("Strategy", contains="VIRTUAL",
                         fields = list(
                         ),
                         methods = list(
@@ -52,7 +53,7 @@ stop("Should implement calcSignals()")
 #' a set of keys for each symbol that are all set to FALSE. Once the asset has 
 #' been "longed" then this is set to TRUE. Essentially this allows the Strategy
 #' to know whether it is "in the market" or not.
-BuyAndHoldStrategy <- setRefClass("BuyAndHoldStrategy", contains="Strategy"
+BuyAndHoldStrategy <- setRefClass("BuyAndHoldStrategy", contains="Strategy",
                         fields = list(
                           bars="ANY", # TODO: specify bars class
                           symbols="character",
@@ -82,15 +83,16 @@ BuyAndHoldStrategy <- setRefClass("BuyAndHoldStrategy", contains="Strategy"
   dictionary is correctly updated to True for this particular symbol key"
     
   if(m$type == 'MARKET'){
-    for (s in symbols)
-      bars = bars.getLatestBars(s, N=1)
-    if (!is.null(bars)
+    for (s in symbols) {
+      bars <<- bars.getLatestBars(s, N=1)
+    if (!is.null(bars))
       if (!bought[s]) {
         # (Symbol, Datetime, Type = LONG, SHORT or EXIT)
         signal = SignalEvent(bars[0][0], bars[0][1], 'LONG')
         events$put(signal)
         bought[s] <<- TRUE
       }
+    }
   }
                           },
   

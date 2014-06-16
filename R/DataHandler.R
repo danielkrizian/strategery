@@ -37,29 +37,29 @@
 #' @include Event.R
 DataHandler <- setRefClass("DataHandler", contains="VIRTUAL",
                            fields = list(
+                             continue.backtest="logical"
                            ),
                            methods = list(
                              updateBars=function(){
-                               "Pushes the latest bar to the latest symbol structure for all symbols in the 
-symbol list.
-This is triggered when the outer while loop begins a new 'heartbeat'. It 
-occurs when the DataHandler object receives a new update of market data for 
-any symbols which are currently being tracked. The event object simply 
-contains an identification that it is a market event, with no other 
-structure. It is used to trigger the Strategy object generating new trading 
-signals."
+  "Pushes the latest bar to the latest symbol structure for all symbols in the 
+  symbol list.
+  This is triggered when the outer while loop begins a new 'heartbeat'. It 
+  occurs when the DataHandler object receives a new update of market data for 
+  any symbols which are currently being tracked. The event object simply 
+  contains an identification that it is a market event, with no other 
+  structure. It is used to trigger the Strategy object generating new trading 
+  signals."
                                stop("Should implement updateBars()")
                                return(list(type="market"))
-                             }
+                             },
                              
                              getLatestBars = function(symbol, N=1){
-"Returns the last N bars from the latest_symbol list, or fewer if less bars 
-are available."
+  "Returns the last N bars from the latest_symbol list, or fewer if less bars 
+  are available."
                                stop("Should implement getLatestBars()")
                              }
                            )
 )
-
 
 #' historic CSV data handler, which will load intraday CSV data for equities 
 #' in an Open-Low-High-Close-Volume-OpenInterest set of bars. 
@@ -85,8 +85,7 @@ CSVDataHandler <- setRefClass("CSVDataHandler", contains="DataHandler",
                                 dir = "character",
                                 symbols = "character",
                                 data = "data.table",
-                                latest.data = "data.table",
-                                continue.backtest="logical"
+                                latest.data = "data.table"
                               ),
                               methods = list(
                                 initialize = function(events, dir, symbols){
@@ -106,7 +105,6 @@ Parameters:
                                   data <<- data.table()
                                   latest.data <<- data.table()
                                   continue.backtest <<- TRUE
-                                  
                                   openConvertCSV()
                                 },
 
@@ -135,7 +133,7 @@ Setting N=1 allows the retrieval of the current bar (wrapped in a list).
 Returns the last N bars from the latest_symbol list, or N-k if less available."
                                   tryCatch(
                                     bars.list = latest.data[symbol],
-                                    print "That symbol is not available in the historical data set."
+                                    print("That symbol is not available in the historical data set.")
                                   )
                                   return (tail(bars.list,N))
                                 },

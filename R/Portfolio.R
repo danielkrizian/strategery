@@ -12,7 +12,7 @@ Portfolio.position <- function(instrument=NULL, date=NULL){
 #' @param x data.table object with columns:
 #' Instrument, Date, TxnQty, Price, TxnValue
 #' keyed by Instrument, Date
-Portfolio.addTxns <- function(x){
+Portfolio.bookTxns <- function(x){
   # Update portfolio positions with new transactions
   if(is.null(txns)) txns <<-x else {
     txns <<- .rbind.data.table(txns, x, use.names=TRUE)
@@ -72,7 +72,7 @@ Portfolio.returns <- function(interval="days") {
       performance[Prev.Value!=0, Return:=PL/abs(Prev.Value)]
       performance[,Instrument:=if(length(name)) name else "Portfolio"]
     }
-    if(inherits(.self, "Account") & !is.null(.self$benchmarks)) {
+    if(length(benchmarks)) {
     }
   }
   performance <- performance[,list(Instrument, Date, Return)]
@@ -103,7 +103,7 @@ Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
     # add last avaialable date
     closeout.orders = OHLCV[, list(Date=last(Date)), by=Instrument][closeout.orders]
     setkey(closeout.orders, Instrument, Date)
-    closeout.txn = execute(closeout.orders, lag.days = 0)[, Pos:=0]
+    closeout.txn = Trader()$execute(closeout.orders, lag.days = 0)[, Pos:=0]
     .txns = rbindlist(list(txns, closeout.txn))
     setkey(.txns, Instrument, Date)
   } else {
@@ -147,6 +147,7 @@ Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
   return(out)
 }
 
+############ Portfolio #########################################################
 #' Keeps track of all positions with a profit and loss ("PnL").
 #' keep track of the market value of the positions (known as the "holdings")
 #' 
@@ -186,15 +187,22 @@ Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
 #' @include Event.R
 Portfolio <- setRefClass("Portfolio"
                          , fields = list(name="character",
+                                         benchmarks="data.table",
                                          positions="data.table",
                                          txns="data.table",
-                                         exposures = "data.table" 
+                                         exposures = "data.table"
                          )
                          , methods = list(
                            
                            initialize=function(...)  {
                              assign('.performance',numeric(), .self)
                              .self$initFields(...)
+                           },
+                           orders = function(model){
+  "Apply rules in an existing portfolio, generate orders from signals.
+  Signal = difference between existing and model portfolio"
+  orders = model[, OrderSize:=c(Pos[1],diff.default(Pos)), by=Instrument]
+  orders[OrderSize!=0][,Pos:=NULL]
                            },
                            updateTimeIndex = function(event){
   "Handles the new holdings tracking. It firstly obtains the latest prices from 
@@ -237,8 +245,9 @@ Portfolio <- setRefClass("Portfolio"
   
                              print("Fill updated in portf from fill event")
                            },
+#   cash = initial.capital - (pos.diff*bars['Adj Close']).sum(axis=1).cumsum()
                            position = Portfolio.position, 
-                           addTxns = Portfolio.addTxns,
+                           bookTxns = Portfolio.bookTxns,
                            calcPL = Portfolio.calcPL,
                            plot = Portfolio.plot,
                            returns = Portfolio.returns,
