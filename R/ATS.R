@@ -1,18 +1,30 @@
 #### Automated Trading System State Machine ####
+a = c("state1", "otherstate")
+STATES  = factor(1:2, levels=a,labels=a,ordered = F)
 
+# transitions table (indexed by col 1 & 2)
+# ----------------------------------------
+#         current     input             next            Xition           Monitor
+#           state     event            state               FUN               FUN
+#         -------     -----            -----            ------           -------
+#          incash  entersig      orderinbook  pmgr$writeOrders  pmgr$scanSignals
+#     orderinbook         ?  orderwithbroker  trader$sendOrder                 ?
+# orderwithbroker      fill      filledorder  portfolio$addTxn                 ?
+#     filledorder  confrmtn     openposition                 ?                 ?
+#    openposition  rebalsig     openposition                 ?  pmgr$scanSignals
+#    openposition   exitsig   closedposition                 ?                 ?
+#  closedposition       txn           incash  portfolio$addTxn                 ?
+#
+############################## 
 # components
 ################
-# DataHandler -> MarketEvent -> Strategy -> SignalEvent -> Portfolio -> OrderEvent
-# -> ExecutionHandler -> FillEvent -> Portfolio
-# EventQueue = list(Events)
+# DataHandler -> Market -> Strategy -> SignalEvent -> Portfolio -> Order
+# -> ExecutionHandler -> Fill
+# Queue = list(Events)
 # Event = c("Market", "Signal", "Order", "Fill")
 # SignalEvent = list(Symbol, Direction=c("Long", "Short"), timestamp)
 # Portfolio = OrderManagementSystem (OMS) + RiskManagement
 #    = c("Risk Management"=c("Exposure", "Position Sizing")) 
-
-# DataHandler
-#   updateBars
-
 
 ExecutionHandler <- setRefClass("ExecutionHandler",
                         fields = list(
@@ -35,7 +47,7 @@ events = list()
 events$get= function(tf) simpleError("test error")
 
 startMachine <- function(){
-  bars = DTHandler(continue.backtest=T)
+  bars = DataHandler(continue.backtest=T)
   strategy = Strategy()
   port = Portfolio()
   broker = ExecutionHandler()
