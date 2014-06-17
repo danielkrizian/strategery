@@ -162,6 +162,8 @@ summary.drawdowns <- function(drawdowns, dates=NULL) {
 
 avgwin <- function(x, extreme=F) {
   wins <- x[x>0]
+  if(!length(wins))
+    return(as.numeric(NA))
   if(!extreme)
     wins <- wins[which(wins<max(wins))]
   mean(wins)
