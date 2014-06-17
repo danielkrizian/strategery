@@ -127,7 +127,7 @@ summary.drawdowns <- function(drawdowns, dates=NULL) {
   
   ddstarts = which( drawdowns != 0 & prevdd == 0 )
   ddends = which( drawdowns == 0 & prevdd != 0 )
-  if(!length(ddstarts))
+  if(!length(ddstarts) | !length(ddends))
     return(data.table(From=as.Date(character(0))
                       ,Trough=as.Date(character(0))
                       , To=as.Date(character(0))
