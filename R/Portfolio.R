@@ -27,19 +27,19 @@ Portfolio.bookTxns <- function(x){
   setkey(positions, Instrument, Date)
 }
 
-Portfolio.calcPL <- function(market=OHLCV){
+Portfolio.calcPL <- function(){
   
   #' Calculate portfolio profit & loss for each period
   #' 
   #' Gross.Trading.PL=Pos.Value- LagValue - Txn.Value
   #' Period.Unrealized.PL = Gross.Trading.PL - Gross.Txn.Realized.PL
 
-  market <- market[,list(Instrument, Date, Close)]
-  setnames(market,"Close","Price")
+  .market <- market[,list(Instrument, Date, Close)]
+  setnames(.market,"Close","Price")
   
   # start from the first available position, not from the first market price
   START <- positions[,list(First=min(Date)), by=Instrument]
-  bounded.market <- market[START][Date>=First][,First:=NULL]
+  bounded.market <- .market[START][Date>=First][,First:=NULL]
   setkey(bounded.market, Instrument, Date)
   marked.portfolio <- positions[bounded.market, roll=TRUE][, Value:=Pos * Price]
   # handle missing TxnValue - fill zeroes alternative
@@ -103,7 +103,7 @@ Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
     # add last avaialable date
     closeout.orders = OHLCV[, list(Date=last(Date)), by=Instrument][closeout.orders]
     setkey(closeout.orders, Instrument, Date)
-    closeout.txn = Trader()$execute(closeout.orders, lag.days = 0)[, Pos:=0]
+    closeout.txn = Trader(market=OHLCV)$execute(closeout.orders, lag.days = 0)[, Pos:=0]
     .txns = rbindlist(list(txns, closeout.txn))
     setkey(.txns, Instrument, Date)
   } else {
@@ -188,6 +188,7 @@ Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
 Portfolio <- setRefClass("Portfolio"
                          , fields = list(name="character",
                                          benchmarks="data.table",
+                                         market="data.table",
                                          positions="data.table",
                                          txns="data.table",
                                          exposures = "data.table"
@@ -306,24 +307,24 @@ portfolio <- function(data) {
 # oportf <- portf$new(pos=opos)
 # oportf$lastpos()
 
-portfolio.PL <- function(portfolio, txns, market=OHLCV){
-  
-  market <- market[,list(Instrument, Date, Close)]
-  setnames(market,"Close","Price")
-
-    # marked.portfolio shows NA positions (1928-02-04)
-  marked.portfolio <- portfolio[market, roll=TRUE][, Pos.Value:=Pos * Price]
-  # handle missing TxnValue - fill zeroes alternative
-  cols <- c("Instrument", "Date", "Pos", "Price", "Pos.Value")
-  valued <- marked.portfolio[, cols, with=FALSE]
-  with.txns <- valued[txns][, c(cols, "TxnValue"), with=FALSE]
-  no.txns <- valued[!txns][,TxnValue:=0]
-  valued <-  .rbind.data.table(with.txns, no.txns)
-  setkey(valued, Instrument, Date)
-  
-  # handle missing (NA) TxnValue - is.na() alternative
-  #   out <- txns[,list(Instrument,Date,TxnValue)][marked.portfolio]
-  
-  valued[, PL:= Pos.Value - delay(Pos.Value) - TxnValue]
-  return(valued)
-}
+# portfolio.PL <- function(portfolio, txns, market=OHLCV){
+#   
+#   market <- market[,list(Instrument, Date, Close)]
+#   setnames(market,"Close","Price")
+# 
+#     # marked.portfolio shows NA positions (1928-02-04)
+#   marked.portfolio <- portfolio[market, roll=TRUE][, Pos.Value:=Pos * Price]
+#   # handle missing TxnValue - fill zeroes alternative
+#   cols <- c("Instrument", "Date", "Pos", "Price", "Pos.Value")
+#   valued <- marked.portfolio[, cols, with=FALSE]
+#   with.txns <- valued[txns][, c(cols, "TxnValue"), with=FALSE]
+#   no.txns <- valued[!txns][,TxnValue:=0]
+#   valued <-  .rbind.data.table(with.txns, no.txns)
+#   setkey(valued, Instrument, Date)
+#   
+#   # handle missing (NA) TxnValue - is.na() alternative
+#   #   out <- txns[,list(Instrument,Date,TxnValue)][marked.portfolio]
+#   
+#   valued[, PL:= Pos.Value - delay(Pos.Value) - TxnValue]
+#   return(valued)
+# }

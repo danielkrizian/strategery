@@ -1,4 +1,7 @@
 Trader <- setRefClass("Trader",
+                      fields=list(
+                      market="data.table"
+                      ),
                        methods=list(
                          check = function(txns) {
                            if(nrow(txns[duplicated(txns)])){
@@ -8,7 +11,7 @@ Trader <- setRefClass("Trader",
                              browser()
                            } else txns
                          },
-                         execute = function(orders, market=OHLCV, algo="MOC", lag.days=1) {
+                         execute = function(orders, algo="MOC", lag.days=1) {
   "Execute orders -> book transactions
   Parameters:
     lag.days default = 1 (at least the next day after their generation)"

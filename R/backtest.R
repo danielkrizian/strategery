@@ -2,16 +2,17 @@
 #' 
 #' @export
 Backtest <- function() {
-
+  
+  market = OHLCV
   advisor = Advisor()
-  port = Portfolio()
-  trader = Trader()
+  port = Portfolio(market=market)
+  trader = Trader(market=market)
   
   signals = advisor$signals()
   orders = port$orders(signals)
-  txns = trader$execute(orders, OHLCV, "MOC")
+  txns = trader$execute(orders, "MOC")
   port$bookTxns(txns)
-  port$calcPL(market=OHLCV)
+  port$calcPL()
 
   return(port)
 }
