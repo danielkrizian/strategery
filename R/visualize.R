@@ -98,7 +98,7 @@ Vis <- Visualise <- Visualize <- function(...,
   }
   
   trades = if(trades) {
-    trades = Backtest()$trades(summary=F)
+    trades = Backtest()$tradePL()
     if(!missing(ids))
       trades[Instrument==ids[1]]
     else

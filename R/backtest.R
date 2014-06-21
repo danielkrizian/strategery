@@ -3,44 +3,27 @@
 #' @export
 Backtest <- function() {
   
+  events = Queue()
+  
   market = OHLCV
   advisor = Advisor()
-  port = Portfolio(market=market)
-  trader = Trader(market=market)
+  port = Portfolio()
+  pm = PortfolioManager(events=events, portfolio=port)
+  bo = BackOffice(portfolio=port, market=market)
+  pa = PerformanceAnalyst(portfolio=port)
+  oms = OMS()
+  trader = Trader(market=market, oms=oms)
   
   signals = advisor$signals()
-  orders = port$orders(signals)
-  txns = trader$execute(orders, "MOC")
-  port$bookTxns(txns)
-  port$calcPL()
-
-  return(port)
-}
-
-#' Some Title
-#' 
-#' @export
-Summary <- function
-(portfolio, # portfolio object, having components R, pos and trades
- format=F,
- ... # other arguments passed to format.stats function
-){
-  c("curve", "trade", "period")
-  stats <- switch(stats, 
-                  curve=
-                    c('Total Return','CAGR','Sharpe','Sortino','Volatility','DVR','MAR','Max Daily Drawdown','Average Drawdown','Avg Drawdown Length','Avg Trades Per Year'),
-                  trade=
-                    c('Trade Winning %','Average Trade','Average Win','Average Loss','W/L Ratio','Best Trade','Worst Trade','Avg Days in Trade','Expectancy','Profit Factor'),
-                  period=
-                    c('Time In Market','% Winning Months','Average Winning Month','Average Losing Month','Best Month','Worst Month','% Winning Years','Best Year','Worst Year','Positive 12 Month Periods'),
-                  stats)
+  pm$signals=signals
+  orders = pm$createOrders()
+  oms$orders = orders
+  fills= trader$executeOrders("MOC")
   
-  if(is.null(portfolio$R))
-    portfolio$R <- Returns(portfolio)
-  if(is.null(portfolio$trades))
-    portfolio$trades <- Trades(portfolio)
-  
-  
-  
-  return(out)
+  bo$bookFills(fills)
+  bo$valueHoldings()
+  port$updateHoldings()
+  pa$calcPL()
+  pa$collectTrades()
+  return(pa)
 }

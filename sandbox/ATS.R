@@ -1,5 +1,10 @@
 #### Automated Trading System State Machine ####
 
+
+
+
+
+
 # components
 ################
 # DataHandler -> MarketEvent -> Strategy -> SignalEvent -> Portfolio -> OrderEvent
@@ -10,24 +15,8 @@
 # Portfolio = OrderManagementSystem (OMS) + RiskManagement
 #    = c("Risk Management"=c("Exposure", "Position Sizing")) 
 
-# DataHandler
-#   updateBars
 
 
-ExecutionHandler <- setRefClass("ExecutionHandler",
-                        fields = list(
-                        ),
-                        methods = list(
-                          executeOrder = function(o){
-                            'When an ExecutionHandler receives an OrderEvent 
-                            it must transact the order. Once an order has been 
-                            transacted it generates a FillEvent, which describes
-                            the cost of purchase or sale as well as the 
-                            transaction costs, such as fees or slippage.'
-                            print("Order executed from order event")
-                          }
-                        )
-)
 
 ####################
 # # Declare the components with respective parameters

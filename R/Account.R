@@ -1,6 +1,7 @@
 # Deposits + Withdrawals + Realized PL + Unrealized PL + Interest Income
 Account.deposit=function(amount, date) {}
 Account.withdraw=function(amount, date) {}
+
 #' @include Portfolio.R
 #' @import data.table
 Account <- setRefClass("Account"

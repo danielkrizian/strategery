@@ -1,152 +1,3 @@
-
-Portfolio.position <- function(instrument=NULL, date=NULL){
-  if(!length(positions))
-    return(0)
-  if(is.null(date))
-    last(positions[Instrument==instrument,]$Pos)
-  else
-    last(positions[Instrument==instrument][Date<=date]$Pos)
-}
-#' Add transactions to the portfolio
-#' 
-#' @param x data.table object with columns:
-#' Instrument, Date, TxnQty, Price, TxnValue
-#' keyed by Instrument, Date
-Portfolio.bookTxns <- function(x){
-  # Update portfolio positions with new transactions
-  if(is.null(txns)) txns <<-x else {
-    txns <<- .rbind.data.table(txns, x, use.names=TRUE)
-    setkey(txns, Instrument, Date)
-  }
-  x[,Pos:=position(Instrument) + cumsum(TxnQty), by=Instrument]
-  
-  if(is.null(positions))
-    positions <<- x[,list(Instrument, Date, Pos)]
-  else
-    positions <<- .rbind.data.table(positions, x[,list(Instrument, Date, Pos)], use.names=TRUE)
-  setkey(positions, Instrument, Date)
-}
-
-Portfolio.calcPL <- function(){
-  
-  #' Calculate portfolio profit & loss for each period
-  #' 
-  #' Gross.Trading.PL=Pos.Value- LagValue - Txn.Value
-  #' Period.Unrealized.PL = Gross.Trading.PL - Gross.Txn.Realized.PL
-
-  .market <- market[,list(Instrument, Date, Close)]
-  setnames(.market,"Close","Price")
-  
-  # start from the first available position, not from the first market price
-  START <- positions[,list(First=min(Date)), by=Instrument]
-  bounded.market <- .market[START][Date>=First][,First:=NULL]
-  setkey(bounded.market, Instrument, Date)
-  marked.portfolio <- positions[bounded.market, roll=TRUE][, Value:=Pos * Price]
-  # handle missing TxnValue - fill zeroes alternative
-  cols <- c("Instrument", "Date", "Pos", "Price", "Value")
-  valued <- marked.portfolio[, cols, with=FALSE]
-  with.txns <- valued[txns][, c(cols, "TxnValue"), with=FALSE]
-  no.txns <- valued[!txns][,TxnValue:=0]
-  valued <-  .rbind.data.table(with.txns, no.txns)
-  setkey(valued, Instrument, Date)
-  # handle missing (NA) TxnValue - is.na() alternative
-  #   out <- txns[,list(Instrument,Date,TxnValue)][marked.portfolio]
-  valued[, Prev.Value:=delay(Value, pad=0), by=Instrument]
-  positions <<- valued[, PL:= Value - Prev.Value - TxnValue]
-  return(positions)
-}
-
-Portfolio.plot <- function(...){
-  returns()$plot(...)
-}
-
-Portfolio.returns <- function(interval="days") {
-  # Return = PL / abs(Prev.Value) # abs to accommodate short positions too
-  if(length(.performance))
-    performance <- .performance
-  else {
-    if(inherits(.self, "Portfolio")) {
-      if(! "PL" %in% names(positions)) positions <<- .self$calcPL()
-      performance <- positions[,list(PL=sum(PL), Prev.Value=sum(Prev.Value)), keyby=Date]
-      performance[             , Return:=0]
-      performance[Prev.Value!=0, Return:=PL/abs(Prev.Value)]
-      performance[,Instrument:=if(length(name)) name else "Portfolio"]
-    }
-    if(length(benchmarks)) {
-    }
-  }
-  performance <- performance[,list(Instrument, Date, Return)]
-  setkey(performance, Instrument, Date)
-  r = strategery::returns(performance, col="Return")
-  return(r)
-}
-
-Portfolio.show <- function(...){
-  .self$summary()
-  .self$plot(...)
-}
-
-Portfolio.summary <- function(){
-  print(returns()$summary())
-  print(trades(summary=T, by=NULL))
-}
-
-#' Extract trades list with optional summary stats
-#' @param summary logical. Calculate summary statistics for trades
-#' @param by character. Can be "Instrument", "Side", or "Instrument,Side"
-#' @import lubridate
-Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
-
-  # treat incomplete (still open) trades
-  if(incl.open){
-    closeout.orders = txns[, list(OrderSize=-last(Pos)),by="Instrument"][OrderSize!=0]
-    # add last avaialable date
-    closeout.orders = OHLCV[, list(Date=last(Date)), by=Instrument][closeout.orders]
-    setkey(closeout.orders, Instrument, Date)
-    closeout.txn = Trader(market=OHLCV)$execute(closeout.orders, lag.days = 0)[, Pos:=0]
-    .txns = rbindlist(list(txns, closeout.txn))
-    setkey(.txns, Instrument, Date)
-  } else {
-    # remove last txn if Pos!=0
-    toremove = txns[, list(Date=last(Date), Pos=last(Pos)), by="Instrument"][Pos!=0]
-    .txns = txns[!setkey(toremove, Instrument, Date)]
-  }
-  
-  .txns[, TradeID:=cumsum(delay(cumsum(TxnQty), pad=0)==0), by=Instrument]
-  .trades <- .txns[, list(PL=-sum(TxnValue), 
-                          Base=ifelse(first(TxnValue)>0, 
-                                      sum((TxnValue>0)*TxnValue), 
-                                      sum((TxnValue<0)*TxnValue)),
-                          Start=first(Date),
-                          End=last(Date))
-                   , by="Instrument,TradeID"]
-  .trades[,PL:=PL/abs(Base)]
-  .trades[,Side:=as.character(factor(Base>0
-                                    , levels=c(T, F)
-                                    , labels=c("Long","Short")))]
-  
-  summary.trades <- function(x, by=NULL) {
-    x[, list(
-      "Number of Trades"=length(PL),
-      "Average Days in Trade"=mean(as.numeric(End-Start)),
-      "Trades/Year"=length(PL)/(as.duration(max(End)-min(Start))/dyears(1)),
-      "Average P/L"=mean(PL),
-      "Average Win"=avgwin(PL, extreme=T),
-      "Average Loss"=avgloss(PL),
-      "Best Trade"=max(PL),
-      "Worst Trade"=min(PL),
-      "Win Rate"=winrate(PL),
-      "Win/Loss"=winloss(PL, extreme=F),
-      "Expectancy"=expectancy(PL),
-      "Profit Factor"=profitfactor(PL, extreme=F)
-    )
-    ,by=by]
-  }
-  out = if(summary) summary.trades(.trades, by=by) else .trades
-  
-  return(out)
-}
-
 ############ Portfolio #########################################################
 #' Keeps track of all positions with a profit and loss ("PnL").
 #' keep track of the market value of the positions (known as the "holdings")
@@ -168,6 +19,7 @@ Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
 #' 
 #' Portfolio requires an initial capital value, which is set to the default of 
 #' 100,000 USD. It also requires a starting date-time.
+#' cash = initial.capital - (pos.diff*bars['Adj Close']).sum(axis=1).cumsum()
 #' @field pos.history
 #' Stores a list of all previous positions recorded at the timestamp of a market
 #' data event. A position is simply the quantity of the asset. Negative 
@@ -187,24 +39,58 @@ Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
 #' @include Event.R
 Portfolio <- setRefClass("Portfolio"
                          , fields = list(name="character",
+                                         fills="data.table",
                                          benchmarks="data.table",
-                                         market="data.table",
                                          positions="data.table",
-                                         txns="data.table",
                                          exposures = "data.table"
-                         )
-                         , methods = list(
+                         ), 
+                         methods = list(
                            
                            initialize=function(...)  {
                              assign('.performance',numeric(), .self)
                              .self$initFields(...)
                            },
-                           orders = function(model){
-  "Apply rules in an existing portfolio, generate orders from signals.
-  Signal = difference between existing and model portfolio"
-  orders = model[, OrderSize:=c(Pos[1],diff.default(Pos)), by=Instrument]
-  orders[OrderSize!=0][,Pos:=NULL]
+                           
+                           addFills = function(x){
+                             if(is.null(fills)) 
+                               fills <<- x
+                             else {
+                               fills <<- .rbind.data.table(fills, x, use.names=TRUE)
+                               setkey(fills, Instrument, Date)
+                             }
+                             updatePositions(x)
                            },
+                           
+                           updatePositions = function(x){
+                             x[,Pos:=position(Instrument) + cumsum(TxnQty), by=Instrument]
+                             if(is.null(positions))
+                               positions <<- x[,list(Instrument, Date, Pos)]
+                             else
+                               positions <<- .rbind.data.table(positions, x[,list(Instrument, Date, Pos)], use.names=TRUE)
+                             setkey(positions, Instrument, Date)
+                           },
+                           
+                           position = function(instrument=NULL, date=NULL){
+                             if(!length(positions))
+                               return(0)
+                             if(is.null(date))
+                               last(positions[Instrument==instrument,]$Pos)
+                             else
+                               last(positions[Instrument==instrument][Date<=date]$Pos)
+                           },
+                           
+                           updateHoldings = function(){
+                             holdings = positions
+                             with.fills <- holdings[fills][, c(names(holdings), "TxnValue"),
+                                                           with=FALSE]
+                             no.fills <- holdings[!fills][,TxnValue:=0]
+                             holdings <-  .rbind.data.table(with.fills, no.fills)
+                             setkey(holdings, Instrument, Date)
+                             positions <<- holdings
+                             # handle missing (NA) TxnValue - is.na() alternative
+                             #   out <- fills[,list(Instrument,Date,TxnValue)][marked.portfolio]
+                           },
+                           
                            updateTimeIndex = function(event){
   "Handles the new holdings tracking. It firstly obtains the latest prices from 
   the market data handler and creates a new dictionary of symbols to represent the
@@ -236,25 +122,7 @@ Portfolio <- setRefClass("Portfolio"
   "Acts on a SignalEvent to generate new orders based on the portfolio logic."
   
                              print("Signal updated in portf from signal event")
-                           },
-                           updateFill = function(event){
-  "Updates the portfolio current positions and holdings from a FillEvent.
-  
-  Determines whether a FillEvent is a Buy or a Sell and then updates the 
-  current positions accordingly by adding/subtracting the correct quantity of 
-  shares"
-  
-                             print("Fill updated in portf from fill event")
-                           },
-#   cash = initial.capital - (pos.diff*bars['Adj Close']).sum(axis=1).cumsum()
-                           position = Portfolio.position, 
-                           bookTxns = Portfolio.bookTxns,
-                           calcPL = Portfolio.calcPL,
-                           plot = Portfolio.plot,
-                           returns = Portfolio.returns,
-                           show = Portfolio.show,
-                           summary = Portfolio.summary,
-                           trades = Portfolio.trades)
+                           })
 )
 
 
