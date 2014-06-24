@@ -42,57 +42,67 @@ Portfolio <- setRefClass("Portfolio"
                                          fills="data.table",
                                          benchmarks="data.table",
                                          positions="data.table",
+                                         state="list",
                                          exposures = "data.table"
                          ), 
                          methods = list(
                            
-                           initialize=function(...)  {
-                             assign('.performance',numeric(), .self)
-                             .self$initFields(...)
-                           },
-                           
-                           addFills = function(x){
-                             if(is.null(fills)) 
-                               fills <<- x
-                             else {
-                               fills <<- .rbind.data.table(fills, x, use.names=TRUE)
-                               setkey(fills, Instrument, Date)
-                             }
-                             updatePositions(x)
-                           },
-                           
-                           updatePositions = function(x){
-                             x[,Pos:=position(Instrument) + cumsum(TxnQty), by=Instrument]
-                             if(is.null(positions))
-                               positions <<- x[,list(Instrument, Date, Pos)]
-                             else
-                               positions <<- .rbind.data.table(positions, x[,list(Instrument, Date, Pos)], use.names=TRUE)
-                             setkey(positions, Instrument, Date)
-                           },
-                           
-                           position = function(instrument=NULL, date=NULL){
-                             if(!length(positions))
-                               return(0)
-                             if(is.null(date))
-                               last(positions[Instrument==instrument,]$Pos)
-                             else
-                               last(positions[Instrument==instrument][Date<=date]$Pos)
-                           },
-                           
-                           updateHoldings = function(){
-                             holdings = positions
-                             with.fills <- holdings[fills][, c(names(holdings), "TxnValue"),
-                                                           with=FALSE]
-                             no.fills <- holdings[!fills][,TxnValue:=0]
-                             holdings <-  .rbind.data.table(with.fills, no.fills)
-                             setkey(holdings, Instrument, Date)
-                             positions <<- holdings
-                             # handle missing (NA) TxnValue - is.na() alternative
-                             #   out <- fills[,list(Instrument,Date,TxnValue)][marked.portfolio]
-                           },
-                           
-                           updateTimeIndex = function(event){
-  "Handles the new holdings tracking. It firstly obtains the latest prices from 
+  initialize=function(instruments, date, units, ...)  {
+    if(!missing(instruments)){
+      if(missing(units))
+        units = 0
+      if(!missing(date)){
+        positions <<- data.table(Instrument=instruments, Date=date, Pos=units)
+      }
+      state <<- setNames(as.list(rep(0, times=length(instruments))), instruments)
+    }
+    initFields(...)
+  },
+  
+  addFills = function(x){
+    if(is.null(fills)) 
+      fills <<- x
+    else {
+      fills <<- .rbind.data.table(fills, x, use.names=TRUE)
+      setkey(fills, Instrument, Date)
+    }
+    updatePositions(x)
+  },
+  
+  position = function(instrument=NULL, date=NULL){
+    if(!length(positions))
+      return(0)
+    if(is.null(date))
+      last(positions[Instrument==instrument,]$Pos)
+    else
+      last(positions[Instrument==instrument][Date<=date]$Pos)
+  },
+  
+  updatePositions = function(x){
+    x[,Pos:=position(Instrument) + cumsum(TxnQty), by=Instrument]
+    if(is.null(positions))
+      positions <<- x[,list(Instrument, Date, Pos)]
+    else
+      positions <<- .rbind.data.table(positions, x[,list(Instrument, Date, Pos)], use.names=TRUE)
+
+    last.p = positions[, list(Pos=last(Pos)),by="Instrument"]
+    state <<- setNames(as.list(last.p$Pos),last.p$Instrument)
+    setkey(positions, Instrument, Date)
+  },
+  
+  updateHoldings = function(){
+    holdings = positions
+    with.fills <- holdings[fills][, c(names(holdings), "TxnValue"), with=FALSE]
+    no.fills <- holdings[!fills][,TxnValue:=0]
+    holdings <-  .rbind.data.table(with.fills, no.fills)
+    setkey(holdings, Instrument, Date)
+    positions <<- holdings
+    # handle missing (NA) TxnValue - is.na() alternative
+    #   out <- fills[,list(Instrument,Date,TxnValue)][marked.portfolio]
+  },
+  
+  updateTimeIndex = function(event){
+    "Handles the new holdings tracking. It firstly obtains the latest prices from 
   the market data handler and creates a new dictionary of symbols to represent the
   current positions, by setting the 'new' positions equal to the 'current' 
   positions. These are only changed when a FillEvent is obtained, which is handled
@@ -111,18 +121,18 @@ Portfolio <- setRefClass("Portfolio"
   Arguments:
     event - MarketEvent from the events queue.
 "
-  # update positions
-  # append to history
-  # update holdings and calculate market value
-  # append to history
-  
-                             print("Time index updated in portf from market event")
-                           },
-                           updateSignal = function(event){
-  "Acts on a SignalEvent to generate new orders based on the portfolio logic."
-  
-                             print("Signal updated in portf from signal event")
-                           })
+    # update positions
+    # append to history
+    # update holdings and calculate market value
+    # append to history
+    
+    print("Time index updated in portf from market event")
+  },
+  updateSignal = function(event){
+    "Acts on a SignalEvent to generate new orders based on the portfolio logic."
+    
+    print("Signal updated in portf from signal event")
+  })
 )
 
 

@@ -88,17 +88,17 @@ CSVDataHandler <- setRefClass("CSVDataHandler", contains="DataHandler",
                                 latest.data = "data.table"
                               ),
                               methods = list(
-                                initialize = function(events, dir, symbols){
-"Initialises the historic data handler by requesting the location of the CSV 
-files and a list of symbols.
+  initialize = function(events, dir, symbols){
+  "Initialises the historic data handler by requesting the location of the CSV 
+  files and a list of symbols.
 
-It will be assumed that all files are of the form 'symbol.csv', where symbol is 
-a string in the list.
+  It will be assumed that all files are of the form 'symbol.csv', where symbol is 
+  a string in the list.
 
-Parameters:
-  events - The Event Queue.
-  csv_dir - Absolute directory path to the CSV files.
-  symbol_list - A list of symbol strings."
+  Parameters:
+    events - The Event Queue.
+    csv_dir - Absolute directory path to the CSV files.
+    symbol_list - A list of symbol strings."
                                   events <<- events
                                   dir <<- dir
                                   symbols <<- symbols
@@ -108,70 +108,87 @@ Parameters:
                                   openConvertCSV()
                                 },
 
-                                updateBars = function(){
-"Generates a MarketEvent that gets added to the queue as it appends the latest 
-bars to the latest.data.
-Pushes the latest bar to the latest.data structure for all symbols in the
-symbol list."
-require(iterators)
-for(s in symbols) {
-  tryCatch(bar = nextElem(getNewBar(s)),
-           continue.backtest = FALSE
-  )
-  if(!is.null(bar))
-    latest.data <<- rbindlist(latest.data, bar)
-}
+  updateBars = function(){
+    "Generates a MarketEvent that gets added to the queue as it appends the latest 
+  bars to the latest.data.
+  Pushes the latest bar to the latest.data structure for all symbols in the
+  symbol list."
+    require(iterators)
+    for(s in symbols) {
+      tryCatch(bar = nextElem(getNewBar(s)),
+               continue.backtest = FALSE
+      )
+      if(!is.null(bar))
+        latest.data <<- rbindlist(latest.data, bar)
+    }
+    
+    events$put(MarketEvent())
+    return(list(type="market"))
+  },
 
-events$put(MarketEvent())
-return(list(type="market"))
-                                },
+  getLatestBars = function(symbol, N=1){
+    "Provides a list of the last N bars from the latest_symbol_data structure. 
+  Setting N=1 allows the retrieval of the current bar (wrapped in a list).
 
-                                getLatestBars = function(symbol, N=1){
-"Provides a list of the last N bars from the latest_symbol_data structure. 
-Setting N=1 allows the retrieval of the current bar (wrapped in a list).
+  Returns the last N bars from the latest_symbol list, or N-k if less available."
+    tryCatch(
+      bars.list = latest.data[symbol],
+      print("That symbol is not available in the historical data set.")
+    )
+    return (tail(bars.list,N))
+  },
 
-Returns the last N bars from the latest_symbol list, or N-k if less available."
-                                  tryCatch(
-                                    bars.list = latest.data[symbol],
-                                    print("That symbol is not available in the historical data set.")
-                                  )
-                                  return (tail(bars.list,N))
-                                },
-                                
-                                openConvertCSV = function(){
-"Opens the CSV files from the data directory, converting them into 
-pandas DataFrames within a symbol dictionary.
-For this handler it will be assumed that the data is taken from DTN IQFeed. 
-Thus its format will be respected.
-Symbol indices are not aligned. TODO: consider na.fill as in the original."
-                                  for(s in symbols){
-                                    # Load the CSV file with no header information, indexed on date
-                                    symbol.data = read.csv(
-                                      file=file.path(dir, sprintf('%s.csv', s)),
-                                      header=FALSE, 
-                                      row.names=c('datetime','open','low',
-                                                  'high','close','volume','oi')
-                                    )
-                                    data <<- rbindlist(data, 
-                                                       as.data.table(symbol.data))
-                                  }
-                                },
-                                
-                                getNewBar = function(symbol){
-"Creates a generator to provide a formatted version of the bar data. This means 
-that subsequent calls to the method will yield a new bar until the end of the 
-symbol data is reached.
-Returns the latest bar from the data feed as a tuple of 
-(sybmbol, datetime, open, low, high, close, volume)."
-                          # http://www.exegetic.biz/blog/2013/11/iterators-in-r/
-                                  require(iterators)
-                                  for(b in data[symbol])
-                                    idata = iter(b)
-                                  return(idata)
-                              # IMPLEMENTATION IN python:
-                              # for b in data[symbol]:
-                              #   yield tuple([symbol, strptime(b[0], '%Y-%m-%d %H:%M:%S'), 
-                              #                b[1][0], b[1][1], b[1][2], b[1][3], b[1][4]])
-                                 }
+  openConvertCSV = function(){
+    "Opens the CSV files from the data directory, converting them into 
+  pandas DataFrames within a symbol dictionary.
+  For this handler it will be assumed that the data is taken from DTN IQFeed. 
+  Thus its format will be respected.
+  Symbol indices are not aligned. TODO: consider na.fill as in the original."
+    for(s in symbols){
+      # Load the CSV file with no header information, indexed on date
+      symbol.data = read.csv(
+        file=file.path(dir, sprintf('%s.csv', s)),
+        header=FALSE, 
+        row.names=c('datetime','open','low',
+                    'high','close','volume','oi')
+      )
+      data <<- rbindlist(data, 
+                         as.data.table(symbol.data))
+    }
+  },
+
+  getNewBar = function(symbol){
+    "Creates a generator to provide a formatted version of the bar data. This means 
+  that subsequent calls to the method will yield a new bar until the end of the 
+  symbol data is reached.
+  Returns the latest bar from the data feed as a tuple of 
+  (sybmbol, datetime, open, low, high, close, volume)."
+  # http://www.exegetic.biz/blog/2013/11/iterators-in-r/
+  require(iterators)
+  for(b in data[symbol])
+    idata = iter(b)
+  return(idata)
+  # IMPLEMENTATION IN python:
+  # for b in data[symbol]:
+  #   yield tuple([symbol, strptime(b[0], '%Y-%m-%d %H:%M:%S'), 
+  #                b[1][0], b[1][1], b[1][2], b[1][3], b[1][4]])
+  }
                               )
+)
+
+MarketHandler <- setRefClass("MarketHandler",
+                             fields=list(
+                               data="data.table",
+                               continue.backtest="logical"
+                             ),
+                             methods=list(
+  initialize = function(...) {
+    initFields(...)
+    continue.backtest <<- TRUE
+  },
+  
+  download = function(){
+    data <<- rbindlist(list(data, OHLCV))
+  }
+                             )
 )

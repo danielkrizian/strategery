@@ -8,13 +8,21 @@
 # PercentOfPosition (=3) - size expressed as percent of currently open position (for SCALING IN and SCALING OUT ONLY)
 # NoChange (=0) - don't change previously set size for given bar
 
-#' @export
-shares <- function(qty) {
-  structure(.Data=qty, class=c("share","position_size"))
+#' @method print position_size
+#' @S3method print position_size
+print.position_size <- function(x, ...){
+  out = paste0("<size> ", eval(x) )
+  cat(paste(strwrap(out), collapse = "\n"), "\n", sep = "")
 }
 
+#' @export
+shares <- function(qty) {
+  structure(.Data=enquote(substitute(qty)), class=c("share","position_size"))
+}
+
+#' @export
 equitypct <- function(pct) {
-  
+  structure(.Data=pct, class=c("weight","position_size"))
 }
 
 valid.size <- function(base, side, init.pos=0) {

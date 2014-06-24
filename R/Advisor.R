@@ -11,9 +11,8 @@ Advisor <- setRefClass("Advisor",
                            s$data[eval(as.name(s$.col)) == TRUE, c(s$.id, s$.time), with=FALSE]
                          },
                          
-                         model.portfolio = function(signal, sizing) {
-                           if(is.numeric(sizing))
-                             signal[, Pos:=sizing]
+                         model.portfolio = function(signal, value) {
+                             signal[, Units:=value]
                          },
                          
                          signals = function(){
@@ -23,7 +22,8 @@ Advisor <- setRefClass("Advisor",
                            for(r in ls_rules()) {
                              r = get(r)
                              s = extract.signal(r)
-                             p = model.portfolio(s, r$size)
+                             p = model.portfolio(s, r$signal.value)
+                             p[, check.state:=r$check.state]
                              collected <- if (is.null(collected)) p
                              else
                                .rbind.data.table(collected, p, use.names=TRUE)
