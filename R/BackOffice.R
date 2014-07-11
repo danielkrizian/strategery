@@ -29,6 +29,10 @@ BackOffice <- setRefClass("BackOffice",
                                         keyed by Instrument, Date"
     
     fills = portfolio$addFills(x)
+    if(verbose) {
+      message("Fills booked ")
+      print(fills)
+    }
   }
                                 )
 )

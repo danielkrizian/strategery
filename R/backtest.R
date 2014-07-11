@@ -4,11 +4,11 @@
 Backtest <- function() {
   
   events = Queue()
-  
   market = OHLCV
-  mh = MarketHandler()
-  advisor = Advisor()
   port = Portfolio(instruments=INSTRUMENT$InstrumentID)
+
+  mh = MarketHandler(events=events)
+  advisor = Advisor(events=events)
   pm = PortfolioManager(events=events, portfolio=port)
   rm = RiskManager()
   bo = BackOffice(portfolio=port, market=market)
@@ -16,24 +16,30 @@ Backtest <- function() {
   oms = OMS()
   trader = Trader(market=market, oms=oms)
   
-#   while(TRUE) {
-#       mh$download()
-#     while(mh$continue.backtest) {
-#       
-#     }
-# 
-#   }
+  # continue backtest until portfolio date reaches last market bar
+  # once reached, keep checking for new market bars
+  # backtesting
+  # feeding real time
+  # trading
+  while(TRUE) {
+      mh$updateBars() # keep checking for new bars, append
+    while(mh$continue.backtest) { # while portfolio
+      switch(attr(events$peek(),"event.type"),
+             "market"=advisor$signals(),
+             "signal"=pm$createOrders(),
+             "order"=trader$executeOrders("MOC"),
+             "fill"={
+               bo$bookFills()
+               bo$valueHoldings()
+               port$updateHoldings()
+
+               mh$backtest=FALSE
+             }
+      )
+    }
+  }
   
-  signals = advisor$signals()
-  pm$signals=signals
-  orders = pm$createOrders()
-  oms$orders = orders
-  fills= trader$executeOrders("MOC")
-  
-  bo$bookFills(fills)
-  bo$valueHoldings()
-  port$updateHoldings()
-  pa$calcPL()
+  pa$calcPL() # evaluate whole backtest once it's done (exited while loop)
   pa$collectTrades()
   return(pa)
 }

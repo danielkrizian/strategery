@@ -34,6 +34,7 @@ Trader <- setRefClass("Trader",
   
        Parameters:
       lag.days default = 1 (at least the next day after their generation)"
+    
     # Note that on certain official calendar trading days, 
     # markets were unexpectedly closed, e.g. 2001-09-11 or 1985-09-27 (Hurricane Gloria) in US 
     # Therefore, collect & bundle orders on actual market days
@@ -54,6 +55,12 @@ Trader <- setRefClass("Trader",
     setnames(orders.filled, "FillDate", "Date")
     setkey(orders.filled, Instrument, Date)
     fills = orders.filled[, TxnValue:= TxnQty * Price]
+    seetattr(fills, "event.type", "fill")
+    events$push(fills)
+    if(verbose) {
+      message("Orders filled ")
+      print(fills)
+    }
     return(check(fills))
   }
                       )

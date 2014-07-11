@@ -176,10 +176,12 @@ CSVDataHandler <- setRefClass("CSVDataHandler", contains="DataHandler",
                               )
 )
 
+#' @include Queue.R
 MarketHandler <- setRefClass("MarketHandler",
                              fields=list(
                                data="data.table",
-                               continue.backtest="logical"
+                               continue.backtest="logical",
+                               events="Queue"
                              ),
                              methods=list(
   initialize = function(...) {
@@ -187,8 +189,10 @@ MarketHandler <- setRefClass("MarketHandler",
     continue.backtest <<- TRUE
   },
   
-  download = function(){
+  updateBars = function(){
     data <<- rbindlist(list(data, OHLCV))
+    setattr(data, "event.type", "market")
+    events$push(data)
   }
                              )
 )

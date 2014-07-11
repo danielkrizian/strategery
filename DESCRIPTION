@@ -36,8 +36,8 @@ Imports:
     scales,
     rChartsDygraphs
 Collate:
-    'Advisor.R'
     'Queue.R'
+    'Advisor.R'
     'Event.R'
     'Portfolio.R'
     'BackOffice.R'
