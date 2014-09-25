@@ -142,7 +142,14 @@ Ops.Indicator <- function(e1, e2) {
       return(out)
     }
     else if(inherits(e2,"Indicator")) {
-      if(address(e1$data)==address(e2$data)) {
+      if(is.numeric(e1) | is.logical(e1)) {
+        e2$eval()
+        e2trans <- e2$trans
+        trans <- substitute(op(e1, e2trans))
+        out <- Indicator(data=e2$data, trans=trans)
+        out$eval()
+        return(out)
+      } else if(address(e1$data)==address(e2$data)) {
         e1$eval()
         e2$eval()
         e1trans <- e1$trans
