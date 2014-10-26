@@ -1,67 +1,68 @@
-#' @include OMS.R
-Trader <- setRefClass("Trader",
-                      fields=list(
-                        market="data.table",
-                        oms="OMS"
-                      ),
-                      methods=list(
-  check = function(txns) {
-    if(nrow(txns[duplicated(txns)])){
-      print("Multiple transactions generated for the same instrument: ")
-      print(txns[duplicated(txns)])
-      print("Backtest stopped to prevent error in PortfolioAnalyst$calcPL. TODO: make it robust.")
-      browser()
-    } else txns
-  },
+moc = function(time, symbol, quantity, price, marketdata) {
+  day_following_the_signal = time + 60*60*24
+  md = last(marketdata[paste0("::", day_following_the_signal), symbol])
+  list(time = index(md),
+       instrument = symbol,
+       qty = quantity, 
+       price =as.numeric(md)
+       )
+}
+
+Trader.initialize = function(prices, portfolios){
+  if(!is.list(portfolios))
+    portfolios = list(portfolios)
   
-  collectOrders = function(calendar, lag.days=1) {
-    "On trading days, collect open orders generated during non-trading days or
-    otherwise still open/unexecuted orders. 
-    Make trading calendar available for preparation/bundling of orders"
-    
-    orders = oms$orders
-    
-    calendar[, TradingDate:=Date] # need to make non-key copy that persists after join
-    orders = calendar[orders[,Date:=Date + lag.days], roll=-Inf]
-    # bundle orders for the trader to execute on a given trading day
-    orders = orders[, list(OrderSize=sum(OrderSize)), 
-                    keyby=list(Instrument,TradingDate)]
-    oms$orders <<- orders[, list(Instrument, TradingDate, OrderSize)]
-  },
+  lapply(portfolios, function(pobject) {self$portfolios[[pobject$name]] <- pobject})
   
-  executeOrders = function(algo="MOC", lag.days=1) {
-    "Execute orders -> book transactions
+  self$prices = prices
+  self$orderbook = data.table(Portfolio=character(0), Instrument=character(0), 
+                              Date=as.POSIXct(character(0)), Qty=numeric(0),
+                              Type=character(0), Status=character(0))
+  self$algos$moc = moc
   
-       Parameters:
-      lag.days default = 1 (at least the next day after their generation)"
-    
-    # Note that on certain official calendar trading days, 
-    # markets were unexpectedly closed, e.g. 2001-09-11 or 1985-09-27 (Hurricane Gloria) in US 
-    # Therefore, collect & bundle orders on actual market days
-    collectOrders(calendar=market, lag.days=lag.days)
-    orders.collected = oms$orders
-    # Some orders could get cancelled/netted. Remove them
-    orders.collected = orders.collected[OrderSize!=0]
-    # Execution algorithm: market on close
-    # Example: take the price on a date following immediately the order date.
-    # Roll backwards the price from Monday if the order date is Saturday.
-    # fillDate and fill price will be Monday.
-    orders.filled = market[,FillDate:=Date][orders.collected][, Price:=Close][,TxnQty:=OrderSize]
-    
-    # remove orders yet to be filled in the future (having FillDate==NA)
-    orders.filled = orders.filled[!is.na(FillDate)]
-    
-    orders.filled = orders.filled[,list(Instrument, FillDate, TxnQty, Price)]
-    setnames(orders.filled, "FillDate", "Date")
-    setkey(orders.filled, Instrument, Date)
-    fills = orders.filled[, TxnValue:= TxnQty * Price]
-    seetattr(fills, "event.type", "fill")
-    events$push(fills)
-    if(verbose) {
-      message("Orders filled ")
-      print(fills)
+}
+
+Trader.add_orders = function(portfolios, time, symbols = names(order.size), qty = order.size, type=NULL){
+  
+  new_orders = data.table(Portfolio=portfolios, Instrument=symbols, 
+                          Date=time, Qty=qty, Type="", Status="Open")
+  self$orderbook = rbindlist(list(self$orderbook, new_orders))
+}
+
+Trader.execute = function(){
+  
+  self$orderbook[Status=="Open", c("Status"):={
+    if(length(Portfolio)) {
+      portf = self$portfolios[[Portfolio]]
+      Map(function(i, t, q) {
+        fill = self$algos$moc(symbol=i, time=t, quantity=q, marketdata=self$prices)
+        portf$add_txns(fill$instrument, fill$time, fill$qty, fill$price)
+      }, Instrument, Date, Qty)
+      Status = "Filled"
+      list(Status)
     }
-    return(check(fills))
-  }
+  }, by=Portfolio]
+}
+
+#' Trader Class
+#' 
+#' @import xts
+#' @import R6
+#' @export
+#' @examples
+#' TODO: consider rlist with queue instead of data.table
+trader <- function(prices, portfolios){
+  Trader$new(prices, portfolios)
+}
+
+Trader <- R6::R6Class("Trader",
+                      public = list(
+                        orderbook = NA,
+                        prices = NA,
+                        portfolios = list(),
+                        algos = list(),
+                        initialize = Trader.initialize,
+                        add_orders = Trader.add_orders,
+                        execute = Trader.execute
                       )
 )

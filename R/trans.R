@@ -12,3 +12,20 @@ change <- function(x, na.pad=T) {
   else
     diff.default(x)
 }
+
+#' Crossover operator
+#' 
+#' Crossover occurs (indicates TRUE, otherwise indicates FALSE) when x value
+#' "crosses over" y value - times t where x[t-1] < y[t-1] and x[t] > y[t]
+#' 
+#' @rdname crossover
+#' @exportMethod `%crossover%`
+#' @export
+`%crossover%` <- function(x, ...) {
+  UseMethod("%crossover%",x)
+}
+
+#' @export
+`%crossover%.default` <- function(x, y) {
+  c(FALSE, diff.default(x > y, lag=1, differences=1) > 0)
+}
