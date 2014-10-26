@@ -1,243 +1,202 @@
-
-Portfolio.position <- function(instrument=NULL, date=NULL){
-  if(!length(positions))
-    return(0)
-  if(is.null(date))
-    last(positions[Instrument==instrument,]$Pos)
-  else
-    last(positions[Instrument==instrument][Date<=date]$Pos)
-}
-#' Add transactions to the portfolio
-#' 
-#' @param x data.table object with columns:
-#' Instrument, Date, TxnQty, Price, TxnValue
-#' keyed by Instrument, Date
-Portfolio.addTxns <- function(x){
-  # Update portfolio positions with new transactions
-  if(is.null(txns)) txns <<-x else {
-    txns <<- .rbind.data.table(txns, x, use.names=TRUE)
-    setkey(txns, Instrument, Date)
-  }
-  x[,Pos:=position(Instrument) + cumsum(TxnQty), by=Instrument]
+Portfolio.initialize = function(name, prices, equity=0, 
+                                as.of=min(index(prices))-1e-5) {
+  if (!missing(name)) self$name <- name
   
-  if(is.null(positions))
-    positions <<- x[,list(Instrument, Date, Pos)]
-  else
-    positions <<- .rbind.data.table(positions, x[,list(Instrument, Date, Pos)], use.names=TRUE)
-  setkey(positions, Instrument, Date)
-}
-
-Portfolio.calcPL <- function(market=OHLCV){
+  state = t(rep(0, NCOL(prices)))
+  colnames(state) = colnames(prices)
   
-  #' Calculate portfolio profit & loss for each period
-  #' 
-  #' Gross.Trading.PL=Pos.Value- LagValue - Txn.Value
-  #' Period.Unrealized.PL = Gross.Trading.PL - Gross.Txn.Realized.PL
-
-  market <- market[,list(Instrument, Date, Close)]
-  setnames(market,"Close","Price")
+  txns = data.table(Instrument=character(0), Date=as.POSIXct(character(0)), 
+                    Qty=numeric(0), Price=numeric(0), Value=numeric(0),
+                    Gross.Realized.PL=numeric(0))
   
-  # start from the first available position, not from the first market price
-  START <- positions[,list(First=min(Date)), by=Instrument]
-  bounded.market <- market[START][Date>=First][,First:=NULL]
-  setkey(bounded.market, Instrument, Date)
-  marked.portfolio <- positions[bounded.market, roll=TRUE][, Value:=Pos * Price]
-  # handle missing TxnValue - fill zeroes alternative
-  cols <- c("Instrument", "Date", "Pos", "Price", "Value")
-  valued <- marked.portfolio[, cols, with=FALSE]
-  with.txns <- valued[txns][, c(cols, "TxnValue"), with=FALSE]
-  no.txns <- valued[!txns][,TxnValue:=0]
-  valued <-  .rbind.data.table(with.txns, no.txns)
-  setkey(valued, Instrument, Date)
-  # handle missing (NA) TxnValue - is.na() alternative
-  #   out <- txns[,list(Instrument,Date,TxnValue)][marked.portfolio]
-  valued[, Prev.Value:=delay(Value, pad=0), by=Instrument]
-  positions <<- valued[, PL:= Value - Prev.Value - TxnValue]
-  return(positions)
-}
-
-Portfolio.plot <- function(...){
-  returns()$plot(...)
-}
-
-Portfolio.returns <- function(interval="days") {
-  # Return = PL / abs(Prev.Value) # abs to accommodate short positions too
-  if(length(.performance))
-    performance <- .performance
-  else {
-    if(inherits(.self, "Portfolio")) {
-      if(! "PL" %in% names(positions)) positions <<- .self$calcPL()
-      performance <- positions[,list(PL=sum(PL), Prev.Value=sum(Prev.Value)), keyby=Date]
-      performance[             , Return:=0]
-      performance[Prev.Value!=0, Return:=PL/abs(Prev.Value)]
-      performance[,Instrument:=if(length(name)) name else "Portfolio"]
-    }
-    if(inherits(.self, "Account") & !is.null(.self$benchmarks)) {
-    }
-  }
-  performance <- performance[,list(Instrument, Date, Return)]
-  setkey(performance, Instrument, Date)
-  r = strategery::returns(performance, col="Return")
-  return(r)
-}
-
-Portfolio.show <- function(...){
-  .self$summary()
-  .self$plot(...)
-}
-
-Portfolio.summary <- function(){
-  print(returns()$summary())
-  print(trades(summary=T, by=NULL))
-}
-
-#' Extract trades list with optional summary stats
-#' @param summary logical. Calculate summary statistics for trades
-#' @param by character. Can be "Instrument", "Side", or "Instrument,Side"
-#' @import lubridate
-Portfolio.trades <- function(summary=T, by= NULL, incl.open=T) {
-
-  # treat incomplete (still open) trades
-  if(incl.open){
-    closeout.orders = txns[, list(OrderSize=-last(Pos)),by="Instrument"][OrderSize!=0]
-    # add last avaialable date
-    closeout.orders = OHLCV[, list(Date=last(Date)), by=Instrument][closeout.orders]
-    setkey(closeout.orders, Instrument, Date)
-    closeout.txn = execute(closeout.orders, lag.days = 0)[, Pos:=0]
-    .txns = rbindlist(list(txns, closeout.txn))
-    setkey(.txns, Instrument, Date)
-  } else {
-    # remove last txn if Pos!=0
-    toremove = txns[, list(Date=last(Date), Pos=last(Pos)), by="Instrument"][Pos!=0]
-    .txns = txns[!setkey(toremove, Instrument, Date)]
-  }
+  summary = t(c(rep(0, 5), equity))
+  colnames(summary) = c("Long", "Short", "Net", "Gross", 
+                        "Net.Trading.PL", "Equity")
   
-  .txns[, TradeID:=cumsum(delay(cumsum(TxnQty), pad=0)==0), by=Instrument]
-  .trades <- .txns[, list(PL=-sum(TxnValue), 
-                          Base=ifelse(first(TxnValue)>0, 
-                                      sum((TxnValue>0)*TxnValue), 
-                                      sum((TxnValue<0)*TxnValue)),
-                          Start=first(Date),
-                          End=last(Date))
-                   , by="Instrument,TradeID"]
-  .trades[,PL:=PL/abs(Base)]
-  .trades[,Side:=as.character(factor(Base>0
-                                    , levels=c(T, F)
-                                    , labels=c("Long","Short")))]
-  
-  summary.trades <- function(x, by=NULL) {
-    x[, list(
-      "Number of Trades"=length(PL),
-      "Average Days in Trade"=mean(as.numeric(End-Start)),
-      "Trades/Year"=length(PL)/(as.duration(max(End)-min(Start))/dyears(1)),
-      "Average P/L"=mean(PL),
-      "Average Win"=avgwin(PL, extreme=T),
-      "Average Loss"=avgloss(PL),
-      "Best Trade"=max(PL),
-      "Worst Trade"=min(PL),
-      "Win Rate"=winrate(PL),
-      "Win/Loss"=winloss(PL, extreme=F),
-      "Expectancy"=expectancy(PL),
-      "Profit Factor"=profitfactor(PL, extreme=F)
-    )
-    ,by=by]
-  }
-  out = if(summary) summary.trades(.trades, by=by) else .trades
-  
+  self$t = as.of
+  self$pos = state
+  self$pos_value = state
+  self$pos_avg_cost = state
+  self$txn_value = state
+  self$gross_realized_pl = state
+  self$gross_trading_pl = state
+  self$prices = state
+  self$summary = summary
+  self$txns = txns
+  self$history$gross_trading_pl = xts(state, order.by=as.of)
+  self$history$summary = xts(summary, order.by=as.of)
+  self$history$prices = prices
+}
+
+Portfolio.get_prices = function(time){
+  xts_data = last(self$history$prices[paste0("::", time)])
+  out = xts_data
+  attr(out, "timestamp") = index(xts_data)
   return(out)
 }
 
-#' @import data.table
-Portfolio <- setRefClass("Portfolio"
-                         , fields = list(name="character",
-                                         positions="data.table",
-                                         txns="data.table",
-                                         exposures = "data.table" 
-                         )
-                         , methods = list(
-                           
-                           initialize=function(...)  {
-                             assign('.performance',numeric(), .self)
-                             .self$initFields(...)
+Portfolio.add_txns = function(symbol, t, qty, price){
+  
+  # Validation
+  if (t <= self$t)
+    stop("Cannot add backdated transaction.")
+
+  # Update if needed
+  self$update_to(t - 1e-5)
+  
+  # Position
+  last_pos = self$pos[, symbol]
+  pos = last_pos + qty
+  self$pos[, symbol] = pos
+  
+  # Transaction value
+  txn_value = qty * price
+  self$txn_value[, symbol] = txn_value
+  
+  # Position average cost
+  last_pos_avg_cost = self$pos_avg_cost[, symbol]
+  if (pos == 0) { # liquidated position
+    self$pos_avg_cost[, symbol] = 0
+  } else
+    if (abs(pos) > abs(last_pos)) {# scaled-in position
+
+      self$pos_avg_cost[, symbol] = 
+        (last_pos * last_pos_avg_cost + 
+           ifelse(last_pos_avg_cost>=0, 1, -1) * txn_value) / pos
+    }
+  
+  # Realized PL
+  gross_realized_pl = if( abs(pos) > abs(last_pos) )
+                               0                        # if scaled-in => no PL
+                              else qty * (last_pos_avg_cost - price)
+  self$gross_realized_pl[, symbol] = gross_realized_pl
+  
+  # Append transaction
+  self$txns = rbindlist(list(self$txns, list(symbol, t, qty, price, txn_value, 
+                                             gross_realized_pl)))
+  
+}
+
+Portfolio.update_bar = function(now, 
+                                new_price=self$get_prices(now)){
+  if(now <= self$t)
+    return(invisible())
+  if(!length(index(new_price)))
+    return(invisible())
+  if(index(new_price) <= self$t )
+    return(invisible())
+    
+  new_price = coredata(new_price)
+
+  last_pos_value = self$pos_value
+  pos_value = new_price * self$pos
+  gross_trading_pl = pos_value - last_pos_value - self$txn_value
+  
+  summary = self$summary
+  summary[, "Long"] = sum(pos_value[, pos_value > 0], na.rm=T)
+  summary[, "Short"] = sum(pos_value[, pos_value < 0], na.rm=T)
+  summary[, "Net"] = sum(pos_value, na.rm=T)
+  summary[, "Gross"] = sum(abs(pos_value), na.rm=T)
+  summary[, "Net.Trading.PL"] = sum(gross_trading_pl, na.rm=T)
+  summary[, "Equity"] = summary[, "Equity"] + summary[, "Net.Trading.PL"]
+  
+  self$prices = new_price
+  self$pos_value = pos_value
+  self$txn_value[] = 0
+  self$summary = summary
+  self$history$summary = rbind.xts(self$history$summary, 
+                                   xts(summary, order.by=now))
+  self$history$gross_trading_pl = rbind.xts(self$history$gross_trading_pl, 
+                                    xts(gross_trading_pl, order.by=now))
+  self$t = copy(now)
+}
+
+Portfolio.update_to = function(to, 
+                               new_prices=self$history$prices[
+                                 paste0(self$t,"::", to)]){
+  
+  if(self$t <= to) {
+    for (bar in 1:NROW(new_prices)) {
+      xts_price = new_prices[bar]
+      now = index(xts_price)
+      self$update_bar(now, xts_price)
+    }
+  }
+}
+
+Portfolio.print = function(){
+  cat("Portfolio:", self$name, "\n" , "as of:", format(self$t))
+}
+
+#' Keeps track of all positions with a profit and loss ("PnL").
+#' 
+#' TODO: add benchmarks
+#' TODO: solve contract multipliers in Portfolio$add_txns
+#' TODO: interim on-the-fly valuation (equity value), without saving - for instant exposures
+#' TODO: period summary of "Realized.PL", "Unrealized.PL", "Gross.Trading.PL", "Txn.Fees" if needed
+#' 
+#' Constraints: 
+#' Specifying portfolio constraints as functions of time and asset. 
+#' Constraints are applied when determining `sizing` of order in terms of units
+#' p$constraints$max = function(t, symbols) {
+#'    c(DBC=0.002,IEF=0.004)[symbols]
+#' }
+#' p$constraints$min = function(t, symbols) {
+#'   -c(DBC=0.002,IEF=0.004)[symbols]
+#' }
+#' @import xts
+#' @import R6
+#' @export
+#' @examples
+#' p = portfolio("ABC", prices=prices, equity=100000)
+portfolio <- function(name, prices, equity=0, as.of=min(index(prices))-1e-5) {
+  Portfolio$new(name, prices, equity, as.of)
+}
+
+Portfolio <- R6::R6Class("Portfolio",
+                         public = list(
+                           name = "character",
+                           t=NA,
+                           pos = NA,
+                           txns = NA,
+                           txn_value = NA,
+                           pos_value = NA,
+                           pos_avg_cost = NA,
+                           gross_realized_pl = NA,
+                           gross_trading_pl = NA,
+                           prices = NA,
+                           summary = NA,
+                           history = list(),
+                           test = function(a, b) print(paste(a, b)),
+                           constraints = list(max=NA, 
+                                              min=NA),
+                           initialize = Portfolio.initialize,
+                           add_txns = Portfolio.add_txns,
+                           update_bar = Portfolio.update_bar,
+                           update_to = Portfolio.update_to,
+                           get_prices = Portfolio.get_prices,
+                           equity = function(new_price=NULL) {
+                             return( as.numeric(self$summary[, "Equity"]))
                            },
-                           position = Portfolio.position, 
-                           addTxns = Portfolio.addTxns,
-                           calcPL = Portfolio.calcPL,
-                           plot = Portfolio.plot,
-                           returns = Portfolio.returns,
-                           show = Portfolio.show,
-                           summary = Portfolio.summary,
-                           trades = Portfolio.trades)
+                           sizing = function(weights, symbols, new_price=NULL, round=TRUE) {
+                             
+                             price = if(missing(new_price)) 
+                               self$prices[, symbols] else new_price[, symbols]
+                             
+                             current_position = self$pos[, symbols]
+                             
+                             # apply constraints
+                             if(!identical(self$constraints$max, NA))
+                               weights = pmin(self$constraints$max(self$t, symbols), weights)
+                             if(!identical(self$constraints$min, NA))
+                               weights = pmax(self$constraints$min(self$t, symbols), weights)
+                             target_position = weights * self$equity(new_price=new_price) / price
+                             if(round)
+                               target_position = trunc(target_position)
+                             
+                             return(target_position - current_position)
+                           },
+                           print = Portfolio.print
+                         )
 )
 
-
-#' constructor for creating an portfolio object.
-#' 
-#' Portfolio object represents implementation of a strategy, and hence have the same name.
-portfolio <- function(data) {
-  
-  if(missing(data))
-    return(Portfolio$new())
-  
-  Portfolio$new(positions=data)
-}
-
-# update.portfolio <- function(portfolio, txns) {
-#   .LastPos <- function(portfolio, Instrument) {
-#     LastPos <- last(portfolio[Instrument==Instrument,])$Pos
-#     return(LastPos)
-#   }
-#   txns[,Pos:=.LastPos(portfolio, Instrument) + cumsum(TxnQty), by=Instrument]
-#   portfolio <- .rbind.data.table(portfolio
-#                                  , txns[,list(Instrument, Date, Pos)], use.names=TRUE)
-#   setkey(portfolio, Instrument, Date)
-#   
-#   return(portfolio)
-# }
-
-# Portfolio <- setRefClass("Portfolio", 
-#                          fields = list(holdings = "numeric", 
-#                                        value=function(v) {
-#                                          sum(holdings)
-#                                        })
-# )
-# 
-# Portfolio$new(holdings =c(1055.43, 345.7))
-# p$value
-# p$value
-# Portfolio
-# 
-# pos <- setRefClass("pos", 
-#                          fields = list(last = "numeric")
-# )
-# portf <- setRefClass("portf", 
-#                          fields = list(pos = "pos")
-#                      , methods = list(lastpos = function(v=0) {
-#                        pos$last
-#                      }))
-# 
-# opos <- pos$new(last=1)
-# oportf <- portf$new(pos=opos)
-# oportf$lastpos()
-
-portfolio.PL <- function(portfolio, txns, market=OHLCV){
-  
-  market <- market[,list(Instrument, Date, Close)]
-  setnames(market,"Close","Price")
-
-    # marked.portfolio shows NA positions (1928-02-04)
-  marked.portfolio <- portfolio[market, roll=TRUE][, Pos.Value:=Pos * Price]
-  # handle missing TxnValue - fill zeroes alternative
-  cols <- c("Instrument", "Date", "Pos", "Price", "Pos.Value")
-  valued <- marked.portfolio[, cols, with=FALSE]
-  with.txns <- valued[txns][, c(cols, "TxnValue"), with=FALSE]
-  no.txns <- valued[!txns][,TxnValue:=0]
-  valued <-  .rbind.data.table(with.txns, no.txns)
-  setkey(valued, Instrument, Date)
-  
-  # handle missing (NA) TxnValue - is.na() alternative
-  #   out <- txns[,list(Instrument,Date,TxnValue)][marked.portfolio]
-  
-  valued[, PL:= Pos.Value - delay(Pos.Value) - TxnValue]
-  return(valued)
-}

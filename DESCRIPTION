@@ -1,60 +1,18 @@
 Package: strategery
 Type: Package
-Title: Quant Strategy Specification, Backtesting, Optimization And Statistical
-    Analysis Workflow
-Version: 0.2
-Date: 2014-05-26
+Title: Tools for backtesting of rule-driven investment strategies
+Version: 0.1
+Date: 2014-10-31
 Author: Daniel Krizian <daniel.krizian@gmail.com>
 Maintainer: Daniel Krizian <daniel.krizian@gmail.com>
-Description: System for testing strategies. The goal is to combine simple
-    abstraction high-level syntax similar to Amibroker's AFL language
-    (www.amibroker.com), flexibility of R - for example, Amibroker/Tradestation
-    are constrained to technical analysis and can't work flexibly with
-    fundamental data (quant value screen historical backtests) speed of
-    data.table - which is implemented in C++, has faster sorting algos vs xts
-    and uses database concepts.
+Description: Tools for backtesting of rule-driven investment strategies
 License: TBD
 Depends:
-    data.table (>= 1.8.11)
+    R (>= 3.0.2)
 Imports:
-    RColorBrewer,
-    FinancialInstrument,
-    quantstrat,
-    timeDate,
-    mondate,
-    lubridate,
-    RQuantLib,
-    plyr,
-    TTR,
-    PerformanceAnalytics,
-    grid,
-    gridExtra,
-    gridBase,
-    xtsExtra,
-    ggplot2,
-    ggthemes,
-    scales,
-    rChartsDygraphs
-Collate:
-    'ATS.R'
-    'Portfolio.R'
-    'Account.R'
-    'Indicator.R'
-    'Returns.R'
-    'Trader.R'
-    'backtest.R'
-    'data.R'
-    'datagery.misc.R'
-    'datagery.read.R'
-    'datagery.update.R'
-    'metrics.R'
-    'parameter.R'
-    'rule.R'
-    'sfl.R'
-    'size.R'
-    'Strategy.R'
-    'style.R'
-    'trans.R'
-    'util.R'
-    'visualize.R'
+    R6,
+    data.table (>= 1.8.11),
+    xts
+Suggests:
+    testthat
 Repository: GitHub <github.com/danielkrizian/strategery>

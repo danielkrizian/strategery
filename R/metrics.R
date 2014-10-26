@@ -33,7 +33,10 @@ tr <- truerange <- TR <- function(hi, lo, cl) {
   trueHi - trueLo
 }
 
+#' Average True Range
+#' 
 #' @import TTR
+#' @export
 atr <- ATR <- function(hi, lo, cl, n=14, ma, ...) {
   tr = TR(hi, lo, cl)
   maArgs <- list(n = n, ...)
@@ -82,7 +85,9 @@ mar <- function(R, ann=252) {
 
 ####### VALUE INDEX ######
 
-#' @param x vector of  percent changes
+#' Construct Value Added Index (VAMI) from returns
+#' 
+#' @param x vector of relative changes
 #' @import zoo
 value.index <- function(x){
   x = na.fill(x, fill=0)
@@ -162,6 +167,8 @@ summary.drawdowns <- function(drawdowns, dates=NULL) {
 
 avgwin <- function(x, extreme=F) {
   wins <- x[x>0]
+  if(!length(wins))
+    return(as.numeric(NA))
   if(!extreme)
     wins <- wins[which(wins<max(wins))]
   mean(wins)

@@ -1,5 +1,6 @@
 #' Convert xts to data.table
-#'
+#' 
+#' @import data.table
 #' @export
 as.data.table.xts <- function(x){
   #' #http://r.789695.n4.nabble.com/data-table-and-time-series-subsetting-td4633223.html

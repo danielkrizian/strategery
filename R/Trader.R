@@ -1,38 +1,68 @@
-
-# on trading days, collect open orders generated during non-trading days or
-# otherwise still open/unexecuted orders
-# make trading calendar available. For preparation/bundling of orders
-collect.orders <- function(orders, calendar, lag.days=1) {
-  calendar[, TradingDate:=Date] # need to make non-key copy that persists after join
-  orders = calendar[orders[,Date:=Date + lag.days], roll=-Inf]
-  # bundle orders for the trader to execute on a given trading day
-  orders = orders[, list(OrderSize=sum(OrderSize)), keyby=list(Instrument,TradingDate)]
-  orders[, list(Instrument, TradingDate, OrderSize)]
+moc = function(time, symbol, quantity, price, marketdata) {
+  day_following_the_signal = time + 60*60*24
+  md = last(marketdata[paste0("::", day_following_the_signal), symbol])
+  list(time = index(md),
+       instrument = symbol,
+       qty = quantity, 
+       price =as.numeric(md)
+       )
 }
 
-#' Execute orders -> book transactions
+Trader.initialize = function(prices, portfolios){
+  if(!is.list(portfolios))
+    portfolios = list(portfolios)
+  
+  lapply(portfolios, function(pobject) {self$portfolios[[pobject$name]] <- pobject})
+  
+  self$prices = prices
+  self$orderbook = data.table(Portfolio=character(0), Instrument=character(0), 
+                              Date=as.POSIXct(character(0)), Qty=numeric(0),
+                              Type=character(0), Status=character(0))
+  self$algos$moc = moc
+  
+}
+
+Trader.add_orders = function(portfolios, time, symbols = names(order.size), qty = order.size, type=NULL){
+  
+  new_orders = data.table(Portfolio=portfolios, Instrument=symbols, 
+                          Date=time, Qty=qty, Type="", Status="Open")
+  self$orderbook = rbindlist(list(self$orderbook, new_orders))
+}
+
+Trader.execute = function(){
+  
+  self$orderbook[Status=="Open", c("Status"):={
+    if(length(Portfolio)) {
+      portf = self$portfolios[[Portfolio]]
+      Map(function(i, t, q) {
+        fill = self$algos$moc(symbol=i, time=t, quantity=q, marketdata=self$prices)
+        portf$add_txns(fill$instrument, fill$time, fill$qty, fill$price)
+      }, Instrument, Date, Qty)
+      Status = "Filled"
+      list(Status)
+    }
+  }, by=Portfolio]
+}
+
+#' Trader Class
 #' 
-#' @param lag.days Default = 1 (at least the next day after their generation)
-execute <- function(orders, market=OHLCV, algo="MOC", lag.days=1) {
-  
-  # Note that on certain official calendar trading days, 
-  # markets were unexpectedly closed, e.g. 2001-09-11 or 1985-09-27 (Hurricane Gloria) in US 
-  # Therefore, collect & bundle orders on actual market days
-  orders.collected = collect.orders(orders, calendar=market, lag.days=lag.days)
-  # Some orders could get cancelled/netted. Remove them
-  orders.collected = orders.collected[OrderSize!=0]
-  # Execution algorithm: market on close
-  # Example: take the price on a date following immediately the order date.
-  # Roll backwards the price from Monday if the order date is Saturday.
-  # fillDate and fill price will be Monday.
-  orders.filled = market[,FillDate:=Date][orders.collected][, Price:=Close][,TxnQty:=OrderSize]
-  
-  # remove orders yet to be filled in the future (having FillDate==NA)
-  orders.filled = orders.filled[!is.na(FillDate)]
-  
-  orders.filled = orders.filled[,list(Instrument, FillDate, TxnQty, Price)]
-  setnames(orders.filled, "FillDate", "Date")
-  setkey(orders.filled, Instrument, Date)
-  txns = orders.filled[, TxnValue:= TxnQty * Price]
-  return(txns)
+#' @import xts
+#' @import R6
+#' @export
+#' @examples
+#' TODO: consider rlist with queue instead of data.table
+trader <- function(prices, portfolios){
+  Trader$new(prices, portfolios)
 }
+
+Trader <- R6::R6Class("Trader",
+                      public = list(
+                        orderbook = NA,
+                        prices = NA,
+                        portfolios = list(),
+                        algos = list(),
+                        initialize = Trader.initialize,
+                        add_orders = Trader.add_orders,
+                        execute = Trader.execute
+                      )
+)
