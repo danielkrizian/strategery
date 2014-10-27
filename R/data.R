@@ -105,6 +105,7 @@ Universe <- function(..., load.path=file.path(system.file(package = "strategery"
   # is.null(getOption("DBpath")) & 
   # load data
   loadDB(tables=c("INSTRUMENT","OHLCV"), path=load.path)
+  OHLCV$Date = as.POSIXct(OHLCV$Date)
   
   # subset universe
   if(length(instruments)) {

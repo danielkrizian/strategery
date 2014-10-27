@@ -1,69 +1,62 @@
 strategery
 ==========
 
-## Quant Strategy Specification, Backtesting, Optimization And Statistical Analysis Workflow
+## Tools for backtesting of rule-driven investment strategies
 
-Strategy development process must be efficient! Large chunk of quants' time spent in data preparation, not in analysis. Decouple data processing and analytics. Minimizing time-to-value requires: 
-* idea has to be easily expressible and sharable with other people; machines need to understand it too (DSL)
-* variety and volume of available data 
-*	efficient queries (easy to write, quick response)
-* interactive ad-hoc analysis (R, visualization)
+This package helps outsource some repetitive or error-prone tasks involved in 
+the strategy development and testing process.
 
-1. Data management (in real time and for backtesting purposes)
-2. Signal generation system (create, buy and sell signals according to predefined rules)
-3. Visualisation and statistical validation of rules
-4. Portfolio and P&L tracking system
-5. Routing and execution subsystem (execution trading algorithms, like TWAP, VWAP...)
+## Installation
 
-## Trading Rules
-A `rule` is a chain of operations that transform `rule`'s input (raw market or other data) into `rule`'s output: recommended market position (long/short/neutral).
-`rule` is defined by one or more mathematical and logical operators.
-A `rule` is said to generate a "signal" when the value of the output series (i.e. position series) changes.
-	
-    indicator1 = rawdata %transform% FUN()
-    ....
-    signal = indicator %binary.operator% threshold
-    position = signal %positionsizing% FUN()
+```R
+  devtools::install_github("danielkrizian/strategery")
+```
 
 ## Getting Started
 
-Install with:
+See `demo` folder for more examples like this.
 
-    library("devtools")
-    install_github("strategery", "danielkrizian")
+```R
+#' Moving average crossover strategy with ATR position sizing
+#' Buy when faster-moving average (10) is above the slower-moving average (100)
+#' Trend filter: two moving average lines slower 100-days and faster 50-days.
+#' Exit position otherwise.
+#'
+#' Clenow, Andreas F. (2012-11-26).
+#' Following the Trend: Diversified Managed Futures Trading (Wiley Trading) 
+#' (Kindle Locations 1515-1516). Wiley. Kindle Edition. 
 
-See `demo` folder for use cases like:
+library(strategery); library(TTR); library(data.table)
 
-    require(strategery)
-    
-    # This strategy goes long the S&P 500 index around the turn of each month 
-    # (last trading day and first three trading days). 
-    # Momentum filter applied, i.e. price must be greater than 20 days ago.
-    newStrategy("tom") 
+Universe("VTI", "IEF", "VNQ", "DBC")
 
-    # select universe
-    symbols <- "SPX"
-    Universe(symbols) # prepare ohlc data frame
+fastn = 10
+slown = 100
+filter.fastn = 50
+filter.slown = 100
 
-    cal <- time.frame(symbols, bds=TRUE) # trading days calendar
+OHLCV[, c("fastMA", "slowMA", "filter.fastMA", "filter.slowMA", "ATR", "P", "Long", "Neutral","weight"):={
+  
+  fastMA = SMA(Close, fastn)
+  slowMA = SMA(Close, slown)
+  filter.fastMA = SMA(Close, filter.fastn)
+  filter.slowMA = SMA(Close, filter.slown)
+  ATR = atr(High, Low, Close, n=14, ma="EMA")
+  P = Close
+  trend = filter.fastMA > filter.slowMA
+  Long = (fastMA %crossover% slowMA) & trend
+  Neutral = (fastMA<=slowMA) | !trend
+  
+  weight=0.002/(ATR/P) # size each position to 20bps daily risk
+  
+  out=list(fastMA, slowMA, filter.fastMA, filter.slowMA, ATR, P, Long, Neutral, weight)
+  }, by="Instrument"]
 
-    TurnOfMonth <- function(x, last=1, first=3, advance=2) {
-      eom <-endpoints(x, on="months") # end of month
-      tom <- sort(as.vector(outer(eom, (-last+1 - advance):(first - advance),"+"))) # shift backward&forward
-      tom <- tom[tom > 0 & tom <= length(x)] # eliminate values outside range
-      1:length(x) %in% tom
-    }
-
-    nmom <- 20
-    last.days <- 1
-    first.days <- 3
-
-    TOM <- indicator( TurnOfMonth(Date, last.days, first.days, advance=2), input=cal)
-    mom <- indicator( momentum(Close, nmom), input=OHLCV)
-
-    Long <- (mom>0) %AND% (TOM==TRUE) %position% shares(1) # %buy% equity.pct(2) 
-    Neutral <- (mom<=0) %OR% (TOM!=TRUE) %position% shares(0)
-    
-    Check(plot=T, window="1980")
-
-    Backtest()
+bt = run()
+View(to.quarterly(bt$history$summary, OHLC=F))
+```
+![Equity](/screenshots/portfolio_summary.jpg?raw=true "Portfolio summary statistics, including equity value over time. Compressed to quarterly frequency.")
+```R
+View(bt$txns)
+```
+![Transactions](/screenshots/txns.jpg?raw=true "Portfolio transactions")
